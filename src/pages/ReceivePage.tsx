@@ -23,6 +23,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { useAuth } from '../hooks/useAuth';
 import { packageService } from '../services/packageService';
 import { ReceivePackageForm, Carrier } from '../types';
+import BarcodeScanner from '../components/BarcodeScanner';
 
 const carriers = [
   { value: 'FedEx', label: 'FedEx' },
@@ -39,11 +40,14 @@ const ReceivePage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [scannerOpen, setScannerOpen] = useState(false);
+  const [scanType, setScanType] = useState<'tracking' | 'barcode'>('barcode');
 
   const {
     control,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors },
   } = useForm<ReceivePackageForm>({
     defaultValues: {
@@ -95,9 +99,18 @@ const ReceivePage: React.FC = () => {
     }
   };
 
-  const handleScanBarcode = () => {
-    // Placeholder for barcode scanning functionality
-    alert('Barcode scanning will be implemented with camera integration');
+  const handleScanBarcode = (type: 'tracking' | 'barcode') => {
+    setScanType(type);
+    setScannerOpen(true);
+  };
+
+  const handleScanResult = (scannedCode: string) => {
+    if (scanType === 'tracking') {
+      setValue('trackingNumber', scannedCode);
+    } else {
+      setValue('barcode', scannedCode);
+    }
+    setScannerOpen(false);
   };
 
   return (
@@ -140,22 +153,32 @@ const ReceivePage: React.FC = () => {
 
           <Box component="form" onSubmit={handleSubmit(onSubmit)}>
             <Grid container spacing={3}>
-              {/* First Row */}
+              {/* First Row - Tracking Number with Scanner */}
               <Grid size={{ xs: 12, md: 6 }}>
-                <Controller
-                  name="trackingNumber"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label="Tracking Number *"
-                      error={!!errors.trackingNumber}
-                      helperText={errors.trackingNumber?.message || 'Enter package tracking number'}
-                      placeholder="1Z999AA1234567890"
-                    />
-                  )}
-                />
+                <Box display="flex" gap={1}>
+                  <Controller
+                    name="trackingNumber"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        label="Tracking Number *"
+                        error={!!errors.trackingNumber}
+                        helperText={errors.trackingNumber?.message || 'Enter or scan tracking number'}
+                        placeholder="1Z999AA1234567890"
+                      />
+                    )}
+                  />
+                  <Button
+                    variant="outlined"
+                    onClick={() => handleScanBarcode('tracking')}
+                    sx={{ minWidth: 'auto', px: 2 }}
+                    title="Scan tracking barcode"
+                  >
+                    <QrCodeScanner />
+                  </Button>
+                </Box>
               </Grid>
 
               <Grid size={{ xs: 12, md: 6 }}>
@@ -231,8 +254,9 @@ const ReceivePage: React.FC = () => {
                   />
                   <Button
                     variant="outlined"
-                    onClick={handleScanBarcode}
+                    onClick={() => handleScanBarcode('barcode')}
                     sx={{ minWidth: 'auto', px: 2 }}
+                    title="Scan product barcode"
                   >
                     <QrCodeScanner />
                   </Button>
@@ -282,6 +306,14 @@ const ReceivePage: React.FC = () => {
           </Box>
         </CardContent>
       </Card>
+
+      {/* Barcode Scanner Dialog */}
+      <BarcodeScanner
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScan={handleScanResult}
+        title={scanType === 'tracking' ? 'Scan Tracking Barcode' : 'Scan Product Barcode'}
+      />
 
       {/* Debug Info */}
       <Box mt={3} p={2} bgcolor="grey.100" borderRadius={1}>
