@@ -2,6 +2,11 @@
 
 A modern inventory management system built with React, TypeScript, and Firebase for warehouse operations.
 
+![Screenshot 2025-06-28 at 12 45 52 PM](https://github.com/user-attachments/assets/99191005-440b-4afc-b891-43497b39dff1)
+
+![Screenshot 2025-06-28 at 12 46 06 PM](https://github.com/user-attachments/assets/511e9510-8531-49de-979a-869bb8915bb5)
+
+
 ## 🚀 Features
 
 - **Package Receiving**: Log incoming packages with tracking numbers
