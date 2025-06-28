@@ -1,4 +1,4 @@
-# Exonnex Inventory Management System
+# Inventory Management System with Phone Barcode Scannar 
 
 A modern inventory management system built with React, TypeScript, and Firebase for warehouse operations.
 
