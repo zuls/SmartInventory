@@ -6,6 +6,7 @@ A modern inventory management system built with React, TypeScript, and Firebase 
 
 ![Screenshot 2025-06-28 at 12 46 06 PM](https://github.com/user-attachments/assets/511e9510-8531-49de-979a-869bb8915bb5)
 
+![IMG_FB6707A2C85D-1](https://github.com/user-attachments/assets/cbdce670-d724-4b12-8606-fb47b5da1cb5)
 
 ## 🚀 Features
 
