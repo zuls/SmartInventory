@@ -1,4 +1,4 @@
-// src/services/packageService.ts - Enhanced Implementation
+// src/services/inventoryService.ts - Corrected Implementation
 import {
   collection,
   addDoc,
@@ -13,55 +13,139 @@ import {
   limit,
   onSnapshot,
   Timestamp,
+  runTransaction,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
 import { 
-  Package, 
-  ReceivePackageForm, 
-  PackageStatus, 
-  Carrier,
-  DashboardStats 
+  InventoryBatch, 
+  InventorySource, 
+  DeliveryForm,
+  InventoryStats 
 } from '../types';
 
-export class PackageService {
-  private packagesCollection = collection(db, 'packages');
+export class InventoryService {
+  private inventoryCollection = collection(db, 'inventory');
+  private deliveriesCollection = collection(db, 'deliveries');
 
-  // Create a new package
-  async createPackage(formData: ReceivePackageForm, userId: string): Promise<string> {
-    const packageData: Omit<Package, 'id'> = {
-      ...formData,
-      status: PackageStatus.RECEIVED,
+  // Create inventory batch from package
+  async createInventoryFromPackage(
+    packageData: any, 
+    quantity: number = 1,
+    userId: string
+  ): Promise<string> {
+    const batchData: Omit<InventoryBatch, 'id'> = {
+      sku: packageData.sku || `AUTO-${Date.now()}`,
+      productName: packageData.productName,
+      totalQuantity: quantity,
+      availableQuantity: quantity,
+      reservedQuantity: 0,
+      source: InventorySource.NEW_ARRIVAL,
+      sourceReference: packageData.id,
       receivedDate: new Date().toISOString(),
       receivedBy: userId,
-      driveFiles: [],
+      batchNotes: `Created from package ${packageData.trackingNumber}`,
     };
 
-    const docRef = await addDoc(this.packagesCollection, {
-      ...packageData,
+    const docRef = await addDoc(this.inventoryCollection, {
+      ...batchData,
       receivedDate: Timestamp.now(),
     });
     
     return docRef.id;
   }
 
-  // Get all packages
-  async getAllPackages(): Promise<Package[]> {
+  // Create inventory batch from return
+  async createInventoryFromReturn(
+    returnData: any,
+    quantity: number,
+    userId: string
+  ): Promise<string> {
+    const batchData: Omit<InventoryBatch, 'id'> = {
+      sku: returnData.sku || `RETURN-${Date.now()}`,
+      productName: returnData.productName,
+      totalQuantity: quantity,
+      availableQuantity: quantity,
+      reservedQuantity: 0,
+      source: InventorySource.FROM_RETURN,
+      sourceReference: returnData.id,
+      receivedDate: new Date().toISOString(),
+      receivedBy: userId,
+      batchNotes: `Created from return ${returnData.lpnNumber}`,
+    };
+
+    const docRef = await addDoc(this.inventoryCollection, {
+      ...batchData,
+      receivedDate: Timestamp.now(),
+    });
+    
+    return docRef.id;
+  }
+
+  // Get inventory summary grouped by SKU
+  async getInventorySummaryBySKU(): Promise<any[]> {
     const querySnapshot = await getDocs(
-      query(this.packagesCollection, orderBy('receivedDate', 'desc'))
+      query(this.inventoryCollection, orderBy('sku'))
+    );
+    
+    const batches = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      receivedDate: doc.data().receivedDate?.toDate?.()?.toISOString() || new Date().toISOString(),
+    })) as InventoryBatch[];
+
+    // Group by SKU
+    const skuGroups = batches.reduce((acc, batch) => {
+      if (!acc[batch.sku]) {
+        acc[batch.sku] = {
+          sku: batch.sku,
+          productName: batch.productName,
+          totalAvailable: 0,
+          totalReserved: 0,
+          batches: [],
+          sources: {
+            newArrivals: 0,
+            fromReturns: 0,
+          },
+        };
+      }
+      
+      acc[batch.sku].totalAvailable += batch.availableQuantity;
+      acc[batch.sku].totalReserved += batch.reservedQuantity;
+      acc[batch.sku].batches.push(batch);
+      
+      if (batch.source === InventorySource.NEW_ARRIVAL) {
+        acc[batch.sku].sources.newArrivals += batch.availableQuantity;
+      } else {
+        acc[batch.sku].sources.fromReturns += batch.availableQuantity;
+      }
+      
+      return acc;
+    }, {} as Record<string, any>);
+
+    return Object.values(skuGroups);
+  }
+
+  // Get available inventory for specific SKU
+  async getAvailableInventoryForSKU(sku: string): Promise<InventoryBatch[]> {
+    const querySnapshot = await getDocs(
+      query(
+        this.inventoryCollection,
+        where('sku', '==', sku),
+        where('availableQuantity', '>', 0),
+        orderBy('receivedDate')
+      )
     );
     
     return querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
       receivedDate: doc.data().receivedDate?.toDate?.()?.toISOString() || new Date().toISOString(),
-      labeledDate: doc.data().labeledDate?.toDate?.()?.toISOString(),
-      dispatchDate: doc.data().dispatchDate?.toDate?.()?.toISOString(),
-    })) as Package[];
+    })) as InventoryBatch[];
   }
 
-  // Get package by ID
-  async getPackageById(id: string): Promise<Package | null> {
-    const docRef = doc(db, 'packages', id);
+  // Get inventory batch by ID
+  async getInventoryBatchById(id: string): Promise<InventoryBatch | null> {
+    const docRef = doc(db, 'inventory', id);
     const docSnap = await getDoc(docRef);
     
     if (docSnap.exists()) {
@@ -70,358 +154,170 @@ export class PackageService {
         id: docSnap.id,
         ...data,
         receivedDate: data.receivedDate?.toDate?.()?.toISOString() || new Date().toISOString(),
-        labeledDate: data.labeledDate?.toDate?.()?.toISOString(),
-        dispatchDate: data.dispatchDate?.toDate?.()?.toISOString(),
-      } as Package;
+      } as InventoryBatch;
     }
     
     return null;
   }
 
-  // Update package
-  async updatePackage(id: string, updates: Partial<Package>): Promise<void> {
-    const docRef = doc(db, 'packages', id);
-    
-    // Convert date strings to Timestamps where needed
-    const updateData = { ...updates };
-    if (updates.labeledDate) {
-      updateData.labeledDate = Timestamp.fromDate(new Date(updates.labeledDate));
-    }
-    if (updates.dispatchDate) {
-      updateData.dispatchDate = Timestamp.fromDate(new Date(updates.dispatchDate));
-    }
-    
-    await updateDoc(docRef, updateData);
+  // Reserve inventory for delivery
+  async reserveInventory(batchId: string, quantity: number): Promise<void> {
+    return runTransaction(db, async (transaction) => {
+      const batchRef = doc(db, 'inventory', batchId);
+      const batchDoc = await transaction.get(batchRef);
+      
+      if (!batchDoc.exists()) {
+        throw new Error('Inventory batch not found');
+      }
+      
+      const batch = batchDoc.data() as InventoryBatch;
+      
+      if (batch.availableQuantity < quantity) {
+        throw new Error('Insufficient inventory available');
+      }
+      
+      transaction.update(batchRef, {
+        availableQuantity: batch.availableQuantity - quantity,
+        reservedQuantity: batch.reservedQuantity + quantity,
+      });
+    });
   }
 
-  // Delete package
-  async deletePackage(id: string): Promise<void> {
-    const docRef = doc(db, 'packages', id);
+  // Deliver items (remove from inventory)
+  async deliverItems(deliveryData: DeliveryForm, userId: string): Promise<string> {
+    return runTransaction(db, async (transaction) => {
+      const batchRef = doc(db, 'inventory', deliveryData.inventoryBatchId);
+      const batchDoc = await transaction.get(batchRef);
+      
+      if (!batchDoc.exists()) {
+        throw new Error('Inventory batch not found');
+      }
+      
+      const batch = batchDoc.data() as InventoryBatch;
+      
+      if (batch.availableQuantity < 1) {
+        throw new Error('No inventory available for delivery');
+      }
+      
+      // Create delivery record
+      const deliveryRecord = {
+        ...deliveryData,
+        deliveryDate: new Date().toISOString(),
+        deliveredBy: userId,
+        status: 'delivered',
+        createdAt: Timestamp.now(),
+      };
+      
+      const deliveryRef = doc(this.deliveriesCollection);
+      transaction.set(deliveryRef, deliveryRecord);
+      
+      // Update inventory
+      transaction.update(batchRef, {
+        availableQuantity: batch.availableQuantity - 1,
+      });
+      
+      return deliveryRef.id;
+    });
+  }
+
+  // Search inventory
+  async searchInventory(searchTerm: string): Promise<InventoryBatch[]> {
+    const allInventory = await this.getAllInventoryBatches();
+    
+    const term = searchTerm.toLowerCase();
+    return allInventory.filter(batch =>
+      batch.sku.toLowerCase().includes(term) ||
+      batch.productName.toLowerCase().includes(term) ||
+      (batch.batchNotes && batch.batchNotes.toLowerCase().includes(term))
+    );
+  }
+
+  // Search delivered items
+  async searchDeliveredItems(searchTerm: string): Promise<any[]> {
+    const querySnapshot = await getDocs(this.deliveriesCollection);
+    const deliveries = querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      deliveryDate: doc.data().deliveryDate || new Date().toISOString(),
+    }));
+    
+    const term = searchTerm.toLowerCase();
+    return deliveries.filter(delivery =>
+      (delivery.shippingLabelData?.labelNumber && 
+       delivery.shippingLabelData.labelNumber.toLowerCase().includes(term)) ||
+      (delivery.customerInfo?.name && 
+       delivery.customerInfo.name.toLowerCase().includes(term))
+    );
+  }
+
+  // Get inventory statistics
+  async getInventoryStats(): Promise<InventoryStats> {
+    const allBatches = await this.getAllInventoryBatches();
+    
+    return {
+      totalBatches: allBatches.length,
+      totalAvailableItems: allBatches.reduce((sum, batch) => sum + batch.availableQuantity, 0),
+      totalReservedItems: allBatches.reduce((sum, batch) => sum + batch.reservedQuantity, 0),
+      newArrivals: allBatches
+        .filter(batch => batch.source === InventorySource.NEW_ARRIVAL)
+        .reduce((sum, batch) => sum + batch.availableQuantity, 0),
+      fromReturns: allBatches
+        .filter(batch => batch.source === InventorySource.FROM_RETURN)
+        .reduce((sum, batch) => sum + batch.availableQuantity, 0),
+      uniqueSKUs: new Set(allBatches.map(batch => batch.sku)).size,
+    };
+  }
+
+  // Get all inventory batches
+  private async getAllInventoryBatches(): Promise<InventoryBatch[]> {
+    const querySnapshot = await getDocs(
+      query(this.inventoryCollection, orderBy('receivedDate', 'desc'))
+    );
+    
+    return querySnapshot.docs.map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      receivedDate: doc.data().receivedDate?.toDate?.()?.toISOString() || new Date().toISOString(),
+    })) as InventoryBatch[];
+  }
+
+  // Update inventory batch
+  async updateInventoryBatch(id: string, updates: Partial<InventoryBatch>): Promise<void> {
+    const docRef = doc(db, 'inventory', id);
+    await updateDoc(docRef, {
+      ...updates,
+      updatedAt: Timestamp.now(),
+    });
+  }
+
+  // Delete inventory batch
+  async deleteInventoryBatch(id: string): Promise<void> {
+    const docRef = doc(db, 'inventory', id);
     await deleteDoc(docRef);
   }
 
-  // Get packages by status
-  async getPackagesByStatus(status: PackageStatus): Promise<Package[]> {
-    const querySnapshot = await getDocs(
-      query(
-        this.packagesCollection,
-        where('status', '==', status),
-        orderBy('receivedDate', 'desc')
-      )
-    );
+  // Get low stock items
+  async getLowStockItems(threshold: number = 5): Promise<InventoryBatch[]> {
+    const allBatches = await this.getAllInventoryBatches();
+    return allBatches.filter(batch => batch.availableQuantity <= threshold);
+  }
+
+  // Get inventory activity log
+  async getInventoryActivityLog(batchId: string): Promise<any[]> {
+    // This would require implementing an activity log collection
+    // For now, return basic info
+    const batch = await this.getInventoryBatchById(batchId);
+    if (!batch) return [];
     
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      receivedDate: doc.data().receivedDate?.toDate?.()?.toISOString() || new Date().toISOString(),
-      labeledDate: doc.data().labeledDate?.toDate?.()?.toISOString(),
-      dispatchDate: doc.data().dispatchDate?.toDate?.()?.toISOString(),
-    })) as Package[];
-  }
-
-  // Get packages by carrier
-  async getPackagesByCarrier(carrier: Carrier): Promise<Package[]> {
-    const querySnapshot = await getDocs(
-      query(
-        this.packagesCollection,
-        where('carrier', '==', carrier),
-        orderBy('receivedDate', 'desc')
-      )
-    );
-    
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      receivedDate: doc.data().receivedDate?.toDate?.()?.toISOString() || new Date().toISOString(),
-      labeledDate: doc.data().labeledDate?.toDate?.()?.toISOString(),
-      dispatchDate: doc.data().dispatchDate?.toDate?.()?.toISOString(),
-    })) as Package[];
-  }
-
-  // Search packages
-  async searchPackages(searchTerm: string): Promise<Package[]> {
-    const allPackages = await this.getAllPackages();
-    
-    const term = searchTerm.toLowerCase();
-    return allPackages.filter(pkg =>
-      pkg.trackingNumber.toLowerCase().includes(term) ||
-      pkg.productName.toLowerCase().includes(term) ||
-      (pkg.sku && pkg.sku.toLowerCase().includes(term)) ||
-      (pkg.barcode && pkg.barcode.toLowerCase().includes(term)) ||
-      (pkg.label && pkg.label.toLowerCase().includes(term)) ||
-      (pkg.notes && pkg.notes.toLowerCase().includes(term))
-    );
-  }
-
-  // Label package
-  async labelPackage(id: string, label: string, userId: string): Promise<void> {
-    await this.updatePackage(id, {
-      status: PackageStatus.LABELED,
-      label,
-      labeledDate: new Date().toISOString(),
-      labeledBy: userId,
-    });
-  }
-
-  // Mark package as ready for dispatch
-  async markAsReady(id: string, userId: string): Promise<void> {
-    await this.updatePackage(id, {
-      status: PackageStatus.READY,
-      labeledBy: userId,
-    });
-  }
-
-  // Dispatch package
-  async dispatchPackage(
-    id: string, 
-    dispatchCarrier: string, 
-    userId: string
-  ): Promise<void> {
-    await this.updatePackage(id, {
-      status: PackageStatus.DISPATCHED,
-      dispatchDate: new Date().toISOString(),
-      dispatchCarrier,
-      dispatchedBy: userId,
-    });
-  }
-
-  // Get today's package statistics
-  async getTodayStats(): Promise<{
-    received: number;
-    labeled: number;
-    ready: number;
-    dispatched: number;
-    total: number;
-  }> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayStr = today.toISOString().split('T')[0];
-
-    const allPackages = await this.getAllPackages();
-    
-    return {
-      received: allPackages.filter(pkg => 
-        pkg.receivedDate && pkg.receivedDate.startsWith(todayStr)
-      ).length,
-      labeled: allPackages.filter(pkg => 
-        pkg.labeledDate && pkg.labeledDate.startsWith(todayStr)
-      ).length,
-      ready: allPackages.filter(pkg => 
-        pkg.status === PackageStatus.READY
-      ).length,
-      dispatched: allPackages.filter(pkg => 
-        pkg.dispatchDate && pkg.dispatchDate.startsWith(todayStr)
-      ).length,
-      total: allPackages.length,
-    };
-  }
-
-  // Get packages received today
-  async getTodayPackages(): Promise<Package[]> {
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    const todayTimestamp = Timestamp.fromDate(today);
-
-    const querySnapshot = await getDocs(
-      query(
-        this.packagesCollection,
-        where('receivedDate', '>=', todayTimestamp),
-        orderBy('receivedDate', 'desc')
-      )
-    );
-    
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      receivedDate: doc.data().receivedDate?.toDate?.()?.toISOString() || new Date().toISOString(),
-      labeledDate: doc.data().labeledDate?.toDate?.()?.toISOString(),
-      dispatchDate: doc.data().dispatchDate?.toDate?.()?.toISOString(),
-    })) as Package[];
-  }
-
-  // Get packages by date range
-  async getPackagesByDateRange(startDate: string, endDate: string): Promise<Package[]> {
-    const start = Timestamp.fromDate(new Date(startDate));
-    const end = Timestamp.fromDate(new Date(endDate + 'T23:59:59'));
-
-    const querySnapshot = await getDocs(
-      query(
-        this.packagesCollection,
-        where('receivedDate', '>=', start),
-        where('receivedDate', '<=', end),
-        orderBy('receivedDate', 'desc')
-      )
-    );
-    
-    return querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      receivedDate: doc.data().receivedDate?.toDate?.()?.toISOString() || new Date().toISOString(),
-      labeledDate: doc.data().labeledDate?.toDate?.()?.toISOString(),
-      dispatchDate: doc.data().dispatchDate?.toDate?.()?.toISOString(),
-    })) as Package[];
-  }
-
-  // Get weekly trends
-  async getWeeklyTrends(): Promise<{
-    received: number[];
-    dispatched: number[];
-    labels: string[];
-  }> {
-    const today = new Date();
-    const weekData = [];
-    
-    for (let i = 6; i >= 0; i--) {
-      const date = new Date(today);
-      date.setDate(date.getDate() - i);
-      const dateStr = date.toISOString().split('T')[0];
-      
-      const dayPackages = await this.getPackagesByDateRange(dateStr, dateStr);
-      
-      weekData.push({
-        date: dateStr,
-        received: dayPackages.length,
-        dispatched: dayPackages.filter(pkg => pkg.status === PackageStatus.DISPATCHED).length,
-        label: date.toLocaleDateString('en-US', { weekday: 'short' }),
-      });
-    }
-    
-    return {
-      received: weekData.map(d => d.received),
-      dispatched: weekData.map(d => d.dispatched),
-      labels: weekData.map(d => d.label),
-    };
-  }
-
-  // Get carrier statistics
-  async getCarrierStats(): Promise<{
-    carrier: string;
-    count: number;
-    percentage: number;
-  }[]> {
-    const allPackages = await this.getAllPackages();
-    const carrierCounts = allPackages.reduce((acc, pkg) => {
-      acc[pkg.carrier] = (acc[pkg.carrier] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-    
-    const total = allPackages.length;
-    
-    return Object.entries(carrierCounts).map(([carrier, count]) => ({
-      carrier,
-      count,
-      percentage: Math.round((count / total) * 100),
-    })).sort((a, b) => b.count - a.count);
-  }
-
-  // Get packages needing attention
-  async getPackagesNeedingAttention(): Promise<{
-    pendingLabels: Package[];
-    readyForDispatch: Package[];
-    overduePackages: Package[];
-  }> {
-    const allPackages = await this.getAllPackages();
-    const twoDaysAgo = new Date(Date.now() - 2 * 24 * 60 * 60 * 1000);
-    
-    return {
-      pendingLabels: allPackages.filter(pkg => pkg.status === PackageStatus.RECEIVED),
-      readyForDispatch: allPackages.filter(pkg => pkg.status === PackageStatus.READY),
-      overduePackages: allPackages.filter(pkg => 
-        pkg.status !== PackageStatus.DISPATCHED && 
-        new Date(pkg.receivedDate) < twoDaysAgo
-      ),
-    };
-  }
-
-  // Bulk operations
-  async bulkUpdatePackages(
-    packageIds: string[], 
-    updates: Partial<Package>
-  ): Promise<void> {
-    const updatePromises = packageIds.map(id => this.updatePackage(id, updates));
-    await Promise.all(updatePromises);
-  }
-
-  // Real-time package updates
-  subscribeToPackageUpdates(callback: (packages: Package[]) => void): () => void {
-    const unsubscribe = onSnapshot(
-      query(this.packagesCollection, orderBy('receivedDate', 'desc')),
-      (snapshot) => {
-        const packages = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          receivedDate: doc.data().receivedDate?.toDate?.()?.toISOString() || new Date().toISOString(),
-          labeledDate: doc.data().labeledDate?.toDate?.()?.toISOString(),
-          dispatchDate: doc.data().dispatchDate?.toDate?.()?.toISOString(),
-        })) as Package[];
-        
-        callback(packages);
+    return [
+      {
+        action: 'Inventory Created',
+        timestamp: batch.receivedDate,
+        user: batch.receivedBy,
+        details: `Source: ${batch.source}`,
       },
-      (error) => {
-        console.error('Error in package subscription:', error);
-      }
-    );
-    
-    return unsubscribe;
-  }
-
-  // Check for duplicate tracking numbers
-  async checkDuplicateTracking(trackingNumber: string): Promise<boolean> {
-    const querySnapshot = await getDocs(
-      query(
-        this.packagesCollection,
-        where('trackingNumber', '==', trackingNumber),
-        limit(1)
-      )
-    );
-    
-    return !querySnapshot.empty;
-  }
-
-  // Get package activity log
-  async getPackageActivityLog(id: string): Promise<{
-    action: string;
-    timestamp: string;
-    user: string;
-    details?: string;
-  }[]> {
-    const pkg = await this.getPackageById(id);
-    if (!pkg) return [];
-    
-    const activities = [];
-    
-    // Received
-    activities.push({
-      action: 'Package Received',
-      timestamp: pkg.receivedDate,
-      user: pkg.receivedBy,
-      details: `Carrier: ${pkg.carrier}`,
-    });
-    
-    // Labeled
-    if (pkg.labeledDate && pkg.labeledBy) {
-      activities.push({
-        action: 'Package Labeled',
-        timestamp: pkg.labeledDate,
-        user: pkg.labeledBy,
-        details: pkg.label ? `Label: ${pkg.label}` : undefined,
-      });
-    }
-    
-    // Dispatched
-    if (pkg.dispatchDate && pkg.dispatchedBy) {
-      activities.push({
-        action: 'Package Dispatched',
-        timestamp: pkg.dispatchDate,
-        user: pkg.dispatchedBy,
-        details: pkg.dispatchCarrier ? `Carrier: ${pkg.dispatchCarrier}` : undefined,
-      });
-    }
-    
-    return activities.sort((a, b) => 
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
-    );
+    ];
   }
 }
 
-export const packageService = new PackageService();
+export const inventoryService = new InventoryService();

@@ -122,3 +122,108 @@ export interface ReceivePackageForm {
   barcode?: string;
   notes?: string;
 }
+
+// Inventory Types
+export interface InventoryBatch {
+  id: string;
+  sku: string;
+  productName: string;
+  totalQuantity: number;
+  availableQuantity: number;
+  reservedQuantity: number;
+  source: InventorySource;
+  sourceReference: string; // Package ID or Return ID
+  receivedDate: string;
+  receivedBy: string;
+  batchNotes?: string;
+}
+
+export enum InventorySource {
+  NEW_ARRIVAL = 'new_arrival',
+  FROM_RETURN = 'from_return',
+}
+
+export interface InventoryStats {
+  totalBatches: number;
+  totalAvailableItems: number;
+  totalReservedItems: number;
+  newArrivals: number;
+  fromReturns: number;
+  uniqueSKUs: number;
+}
+
+// Delivery Types
+export interface DeliveryForm {
+  inventoryBatchId: string;
+  productSerialNumber?: string;
+  shippingLabelData: ShippingLabelData;
+  customerInfo: CustomerInfo;
+  deliveryTracking?: string;
+}
+
+export interface ShippingLabelData {
+  labelNumber: string;
+  carrier: Carrier;
+  trackingNumber?: string;
+  destination: string;
+  weight?: string;
+  dimensions?: string;
+  serviceType?: string;
+}
+
+export interface CustomerInfo {
+  name?: string;
+  address?: string;
+  email?: string;
+  phone?: string;
+}
+
+// Return Types
+export interface ReturnForm {
+  lpnNumber: string;
+  trackingNumber: string;
+  productName: string;
+  sku?: string;
+  condition: ReturnCondition;
+  reason?: string;
+  notes?: string;
+  quantity: number;
+  removalOrderId?: string;
+}
+
+// Search Types
+export interface SearchResult {
+  id: string;
+  type: 'package' | 'return' | 'inventory' | 'delivered';
+  title: string;
+  subtitle: string;
+  status: string;
+  date: string;
+  relevanceScore: number;
+}
+
+export interface SearchFilters {
+  type: string;
+  status: string;
+  dateRange: {
+    start: string;
+    end: string;
+  };
+}
+
+// Enhanced Dashboard Stats
+export interface DashboardStats {
+  todayReceived: number;
+  readyForDispatch: number;
+  todayDispatched: number;
+  pendingReturns: number;
+  totalPackages: number;
+  totalInventoryItems: number;
+  pendingReturnItems: number;
+  weeklyTrend: {
+    received: number[];
+    dispatched: number[];
+    returns: number[];
+    labels: string[];
+  };
+}
