@@ -8,5 +8,11 @@ export default defineConfig({
     host: true, // This allows all hosts
     port: 5173,
     strictPort: true,
+    allowedHosts: [
+      'localhost',
+      '127.0.0.1',
+      '.ngrok.io', // Allow all ngrok subdomains
+      '.ngrok-free.app' // Allow ngrok free tier domains
+    ],
   },
 })
