@@ -1,6 +1,8 @@
 // src/pages/GlobalSearchPage.tsx
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+// import { MenuItem } from '@mui/material';
+
 import {
   Box,
   Typography,
@@ -25,11 +27,12 @@ import {
   Tabs,
   Tab,
   Collapse,
+  MenuItem,
 } from '@mui/material';
 import {
   Search,
   ArrowBack,
-  Package,
+  Inventory2,
   AssignmentReturn,
   Inventory,
   LocalShipping,
@@ -207,7 +210,7 @@ const GlobalSearchPage: React.FC = () => {
   const getResultIcon = (type: string) => {
     switch (type) {
       case 'package':
-        return <Package />;
+        return <Inventory2 />;
       case 'return':
         return <AssignmentReturn />;
       case 'inventory':

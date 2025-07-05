@@ -118,31 +118,31 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
     // - quagga2
     // - ml5.js
     
-    scanIntervalRef.current = setInterval(() => {
-      if (videoRef.current && canvasRef.current) {
-        const canvas = canvasRef.current;
-        const context = canvas.getContext('2d');
-        const video = videoRef.current;
+    // scanIntervalRef.current = setInterval(() => {
+    //   if (videoRef.current && canvasRef.current) {
+    //     const canvas = canvasRef.current;
+    //     const context = canvas.getContext('2d');
+    //     const video = videoRef.current;
         
-        if (context && video.videoWidth && video.videoHeight) {
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
+    //     if (context && video.videoWidth && video.videoHeight) {
+    //       canvas.width = video.videoWidth;
+    //       canvas.height = video.videoHeight;
           
-          // Draw current frame
-          context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    //       // Draw current frame
+    //       context.drawImage(video, 0, 0, canvas.width, canvas.height);
           
-          // Simulate barcode detection
-          // In reality, you'd process the image data here
-          const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
+    //       // Simulate barcode detection
+    //       // In reality, you'd process the image data here
+    //       const imageData = context.getImageData(0, 0, canvas.width, canvas.height);
           
-          // Mock barcode detection (remove in real implementation)
-          if (Math.random() > 0.95) { // 5% chance to "detect" a barcode
-            const mockBarcode = generateMockBarcode();
-            handleBarcodeDetected(mockBarcode);
-          }
-        }
-      }
-    }, 100);
+    //       // Mock barcode detection (remove in real implementation)
+    //       if (Math.random() > 0.95) { // 5% chance to "detect" a barcode
+    //         const mockBarcode = generateMockBarcode();
+    //         handleBarcodeDetected(mockBarcode);
+    //       }
+    //     }
+    //   }
+    // }, 100);
   };
 
   const generateMockBarcode = (): string => {

@@ -1,6 +1,7 @@
 // src/pages/PackageListPage.tsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+
 import {
   Box,
   Typography,
@@ -113,17 +114,57 @@ const PackageListPage: React.FC = () => {
                 </TableRow>
               </TableHead>
               <TableBody>
-                {filteredPackages.map((pkg) => (
-                  <TableRow key={pkg.id}>
-                    <TableCell fontFamily="monospace">
-                      {pkg.trackingNumber}
-                    </TableCell>
-                    <TableCell>{pkg.productName}</TableCell>
-                    <TableCell>{pkg.carrier}</TableCell>
-                    <TableCell>
-                      <Chip
-                        label={pkg.status}
-                        color={getStatusColor(pkg.status) as any}
-                        size="small"
-                      />
-                    </TableCell
+  {filteredPackages.map((pkg) => (
+    <TableRow key={pkg.id}>
+      {/* FIX 1: Use the 'sx' prop for custom styling */}
+      <TableCell sx={{ fontFamily: 'monospace' }}>
+        {pkg.trackingNumber}
+      </TableCell>
+      <TableCell>{pkg.productName}</TableCell>
+      <TableCell>{pkg.carrier}</TableCell>
+
+      {/* FIX 2: Correctly close each TableCell before starting the next */}
+      <TableCell>
+        <Chip
+          label={pkg.status}
+          color={getStatusColor(pkg.status)}
+          size="small"
+        />
+      </TableCell>
+      <TableCell>
+        {format(new Date(pkg.receivedDate), 'MMM dd, yyyy')}
+      </TableCell>
+      <TableCell>
+        <Box display="flex" gap={1}>
+          <IconButton
+            size="small"
+            onClick={() => navigate(`/packages/${pkg.id}`)}
+          >
+            <Visibility />
+          </IconButton>
+          <IconButton
+            size="small"
+            onClick={() => navigate(`/packages/${pkg.id}/edit`)}
+          >
+            <Edit />
+          </IconButton>
+          <IconButton
+            size="small"
+            onClick={() => {
+              // Handle dispatch
+            }}
+          >
+            <LocalShipping />
+          </IconButton>
+        </Box>
+      </TableCell>
+    </TableRow>
+  ))}
+</TableBody>
+            </Table>
+          </TableContainer>
+        </CardContent>
+      </Card>
+    </Box>
+  );
+};

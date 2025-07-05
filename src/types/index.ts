@@ -1,6 +1,7 @@
 // src/types/index.ts
 export interface Package {
   id: string;
+  lpnNumber: string;
   trackingNumber: string;
   carrier: Carrier;
   productName: string;
@@ -21,7 +22,7 @@ export interface Package {
 
 export interface Return {
   id: string;
-  originalTrackingNumber: string;
+  trackingNumber: string;
   condition: ReturnCondition;
   reason?: string;
   notes?: string;
