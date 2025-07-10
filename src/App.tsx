@@ -11,10 +11,10 @@ import theme from './theme';
 
 // Import pages
 import LoginPage from './pages/LoginPage';
-import Dashboard from './pages/Dashboard';
-import ReceivePackagePage from './pages/ReceivePackagePage';
+import DashboardPage from './pages/DashboardPage';
+import ReceivePackagePage from './pages/ReceivePage';
 import PackageListPage from './pages/PackageListPage';
-import PackageDetailPage from './pages/PackageDetailPage';
+import PackageDetailPage from './pages/PackageDetailPage'; // Ensure this is imported
 import ReturnsPage from './pages/ReturnsPage';
 import AddReturnPage from './pages/AddReturnPage';
 import ReturnDetailPage from './pages/ReturnDetailPage';
@@ -45,9 +45,8 @@ const AppContent: React.FC = () => {
         {/* Protected Routes */}
         <Route path="/" element={<ProtectedRoute />}>
           <Route path="/" element={<Layout />}>
-            {/* Dashboard */}
             <Route index element={<Navigate to="/dashboard" replace />} />
-            <Route path="dashboard" element={<Dashboard />} />
+            <Route path="dashboard" element={<DashboardPage />} />
             
             {/* Package Management */}
             <Route path="receive" element={<ReceivePackagePage />} />
@@ -61,13 +60,13 @@ const AppContent: React.FC = () => {
             
             {/* Inventory Management */}
             <Route path="inventory" element={<InventoryPage />} />
-            <Route path="inventory/:id" element={<InventoryPage />} />
-            <Route path="inventory/new" element={<AddReturnPage />} /> {/* Reuse form for new inventory */}
+            
+            {/* --- CORRECTED ROUTE --- */}
+            {/* This now correctly points to the page for receiving new packages/inventory */}
+            <Route path="inventory/new" element={<ReceivePackagePage />} />
             
             {/* Delivery Management */}
             <Route path="delivery" element={<DeliveryPage />} />
-            <Route path="delivery/history" element={<DeliveryPage />} />
-            <Route path="delivery/history/:id" element={<DeliveryPage />} />
             
             {/* Search */}
             <Route path="search" element={<GlobalSearchPage />} />

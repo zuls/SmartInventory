@@ -1,64 +1,48 @@
 // src/types/index.ts
-export interface Package {
-  id: string;
-  lpnNumber: string;
-  trackingNumber: string;
-  carrier: Carrier;
-  productName: string;
-  sku?: string;
-  barcode?: string;
-  status: PackageStatus;
-  receivedDate: string;
-  receivedBy: string;
-  label?: string;
-  labeledDate?: string;
-  labeledBy?: string;
-  dispatchDate?: string;
-  dispatchCarrier?: string;
-  dispatchedBy?: string;
-  notes?: string;
-  driveFiles?: DriveFileReference[];
+
+// ------------- Core Enums -------------
+
+export enum Carrier {
+  FEDEX = 'FedEx',
+  UPS = 'UPS',
+  AMAZON = 'Amazon',
+  USPS = 'USPS',
+  DHL = 'DHL',
+  OTHER = 'Other',
 }
 
-export interface Return {
-  id: string;
-  trackingNumber: string;
-  condition: ReturnCondition;
-  reason?: string;
-  notes?: string;
-  returnDate: string;
-  processedBy: string;
-  status: ReturnStatus;
+export enum PackageStatus {
+  RECEIVED = 'received',
+  LABELED = 'labeled',
+  READY = 'ready',
+  DISPATCHED = 'dispatched',
 }
 
-export interface StockLog {
-  id: string;
-  date: string;
-  morningCount?: number;
-  eveningCount?: number;
-  morningRecordedAt?: string;
-  eveningRecordedAt?: string;
-  recordedBy: string;
-  notes?: string;
+export enum ReturnCondition {
+  INTACT = 'Intact',
+  OPENED = 'Opened',
+  DAMAGED = 'Damaged',
 }
 
-export interface User {
-  uid: string;
-  email: string;
-  displayName?: string;
-  role: UserRole;
-  lastLogin: string;
-  preferences?: UserPreferences;
+export enum ReturnStatus {
+  RECEIVED = 'received',
+  PROCESSED = 'processed',
+  MOVED_TO_INVENTORY = 'moved_to_inventory', // Added status
 }
 
-export interface UserPreferences {
-  theme: 'light' | 'dark';
-  defaultCarrier?: Carrier;
-  notifications: {
-    email: boolean;
-    push: boolean;
-  };
+export enum InventorySource {
+  NEW_ARRIVAL = 'new_arrival',
+  FROM_RETURN = 'from_return',
 }
+
+export enum UserRole {
+  ADMIN = 'admin',
+  MANAGER = 'manager',
+  EMPLOYEE = 'employee',
+}
+
+
+// ------------- Data Interfaces -------------
 
 export interface DriveFileReference {
   fileId: string;
@@ -69,62 +53,41 @@ export interface DriveFileReference {
   uploadedBy: string;
 }
 
-export enum PackageStatus {
-  RECEIVED = 'received',
-  LABELED = 'labeled', 
-  READY = 'ready',
-  DISPATCHED = 'dispatched',
-}
-
-export enum Carrier {
-  FEDEX = 'FedEx',
-  UPS = 'UPS', 
-  AMAZON = 'Amazon',
-  USPS = 'USPS',
-  DHL = 'DHL',
-  OTHER = 'Other',
-}
-
-export enum ReturnCondition {
-  INTACT = 'Intact',
-  OPENED = 'Opened',
-  DAMAGED = 'Damaged',
-}
-
-export enum ReturnStatus {
-  PENDING = 'pending',
-  PROCESSED = 'processed',
-}
-
-export enum UserRole {
-  ADMIN = 'admin',
-  MANAGER = 'manager', 
-  EMPLOYEE = 'employee',
-}
-
-export interface DashboardStats {
-  todayReceived: number;
-  readyForDispatch: number;
-  todayDispatched: number;
-  pendingReturns: number;
-  totalPackages: number;
-  weeklyTrend: {
-    received: number[];
-    dispatched: number[];
-    labels: string[];
-  };
-}
-
-export interface ReceivePackageForm {
+export interface Package {
+  id: string;
   trackingNumber: string;
   carrier: Carrier;
   productName: string;
   sku?: string;
   barcode?: string;
+  status: PackageStatus;
+  receivedDate: string;
+  receivedBy: string;
   notes?: string;
+  // Other fields as needed
 }
 
-// Inventory Types
+export interface Return {
+  id: string;
+  lpnNumber: string;
+  trackingNumber: string;
+  productName: string;
+  sku?: string;
+  condition: ReturnCondition;
+  quantity: number;
+  status: ReturnStatus;
+  receivedDate: string;
+  receivedBy: string;
+  fbaFbm?: 'FBA' | 'FBM';
+  removalOrderId?: string;
+  serialNumber?: string;
+  reason?: string;
+  notes?: string;
+  processedDate?: string;
+  processedBy?: string;
+  driveFiles?: DriveFileReference[];
+}
+
 export interface InventoryBatch {
   id: string;
   sku: string;
@@ -133,33 +96,10 @@ export interface InventoryBatch {
   availableQuantity: number;
   reservedQuantity: number;
   source: InventorySource;
-  sourceReference: string; // Package ID or Return ID
+  sourceReference: string; // e.g., Package ID or Return ID
   receivedDate: string;
   receivedBy: string;
   batchNotes?: string;
-}
-
-export enum InventorySource {
-  NEW_ARRIVAL = 'new_arrival',
-  FROM_RETURN = 'from_return',
-}
-
-export interface InventoryStats {
-  totalBatches: number;
-  totalAvailableItems: number;
-  totalReservedItems: number;
-  newArrivals: number;
-  fromReturns: number;
-  uniqueSKUs: number;
-}
-
-// Delivery Types
-export interface DeliveryForm {
-  inventoryBatchId: string;
-  productSerialNumber?: string;
-  shippingLabelData: ShippingLabelData;
-  customerInfo: CustomerInfo;
-  deliveryTracking?: string;
 }
 
 export interface ShippingLabelData {
@@ -179,7 +119,18 @@ export interface CustomerInfo {
   phone?: string;
 }
 
-// Return Types
+// ------------- Form Interfaces -------------
+
+export interface ReceivePackageForm {
+  trackingNumber: string;
+  carrier: Carrier;
+  productName: string;
+  sku?: string;
+  barcode?: string;
+  quantity: number; // Added for bulk receiving
+  notes?: string;
+}
+
 export interface ReturnForm {
   lpnNumber: string;
   trackingNumber: string;
@@ -189,10 +140,46 @@ export interface ReturnForm {
   reason?: string;
   notes?: string;
   quantity: number;
+  fbaFbm?: 'FBA' | 'FBM';
   removalOrderId?: string;
+  serialNumber?: string;
 }
 
-// Search Types
+export interface DeliveryForm {
+  inventoryBatchId: string;
+  productSerialNumber?: string;
+  shippingLabelData: ShippingLabelData;
+  customerInfo: CustomerInfo;
+  deliveryTracking?: string;
+}
+
+// ------------- Statistics & Search Interfaces -------------
+
+export interface InventoryStats {
+  totalBatches: number;
+  totalAvailableItems: number;
+  totalReservedItems: number;
+  newArrivals: number;
+  fromReturns: number;
+  uniqueSKUs: number;
+}
+
+export interface DashboardStats {
+  todayReceived: number;
+  readyForDispatch: number;
+  todayDispatched: number;
+  pendingReturns: number;
+  totalPackages: number;
+  totalInventoryItems: number;
+  pendingReturnItems: number;
+  weeklyTrend: {
+    received: number[];
+    dispatched: number[];
+    returns: number[];
+    labels: string[];
+  };
+}
+
 export interface SearchResult {
   id: string;
   type: 'package' | 'return' | 'inventory' | 'delivered';
@@ -209,22 +196,5 @@ export interface SearchFilters {
   dateRange: {
     start: string;
     end: string;
-  };
-}
-
-// Enhanced Dashboard Stats
-export interface DashboardStats {
-  todayReceived: number;
-  readyForDispatch: number;
-  todayDispatched: number;
-  pendingReturns: number;
-  totalPackages: number;
-  totalInventoryItems: number;
-  pendingReturnItems: number;
-  weeklyTrend: {
-    received: number[];
-    dispatched: number[];
-    returns: number[];
-    labels: string[];
   };
 }

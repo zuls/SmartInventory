@@ -1,123 +1,136 @@
-// src/pages/DashboardPage.tsx
-import React, { useEffect, useState, useCallback } from 'react';
+// src/pages/Dashboard.tsx
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   Box,
-  Grid,
+  Typography,
   Card,
   CardContent,
-  Typography,
+  Grid,
   Button,
-  useTheme,
+  Alert,
   CircularProgress,
+  Chip,
+  Badge,
+  LinearProgress,
+  Divider,
 } from '@mui/material';
 import {
+  Inventory2 as PackageIcon, // Corrected: Import Inventory2 and alias it as PackageIcon for clarity
+  AssignmentReturn,
   Inventory,
   LocalShipping,
-  AssignmentReturn,
+  Search,
   Add,
+  TrendingUp,
+  TrendingDown,
+  CheckCircle,
 } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
 import { packageService } from '../services/packageService';
-import { auth } from '../lib/firebase';
+import { returnService } from '../services/returnService';
+import { inventoryService } from '../services/inventoryService';
+import { DashboardStats } from '../types';
+import { format } from 'date-fns';
 
-interface StatsCardProps {
-  title: string;
-  value: number;
-  icon: React.ReactElement;
-  color: string;
-}
+const Dashboard: React.FC = () => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  
+  const [stats, setStats] = useState<DashboardStats>({
+    todayReceived: 0,
+    readyForDispatch: 0,
+    todayDispatched: 0,
+    pendingReturns: 0,
+    totalPackages: 0,
+    totalInventoryItems: 0,
+    pendingReturnItems: 0,
+    weeklyTrend: {
+      received: [0,0,0,0,0,0,0],
+      dispatched: [0,0,0,0,0,0,0],
+      returns: [0,0,0,0,0,0,0],
+      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+    },
+  });
+  
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-const StatsCard: React.FC<StatsCardProps> = ({ title, value, icon, color }) => {
-  return (
-    <Card sx={{ height: '100%' }}>
+  useEffect(() => {
+    const loadDashboardData = async () => {
+      try {
+        const [
+          packageStats,
+          inventoryStats,
+          pendingReturns,
+        ] = await Promise.all([
+          packageService.getTodayStats(),
+          inventoryService.getInventoryStats(),
+          returnService.getPendingReturns(),
+        ]);
+
+        const combinedStats: DashboardStats = {
+          todayReceived: packageStats?.received || 0,
+          readyForDispatch: packageStats?.ready || 0,
+          todayDispatched: packageStats?.dispatched || 0,
+          totalPackages: packageStats?.total || 0,
+          totalInventoryItems: inventoryStats?.totalAvailableItems || 0,
+          pendingReturnItems: pendingReturns?.length || 0,
+          pendingReturns: pendingReturns?.length || 0,
+          weeklyTrend: {
+            received: [12, 15, 8, 22, 18, 5, 3],
+            dispatched: [8, 12, 6, 18, 15, 3, 2],
+            returns: [2, 3, 1, 4, 2, 1, 0],
+            labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+          },
+        };
+
+        setStats(combinedStats);
+      } catch (err) {
+        console.error('Error loading dashboard data:', err);
+        setError('Failed to load dashboard data. Please try refreshing.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadDashboardData();
+  }, []);
+
+  const StatCard = ({ title, value, icon, color, onClick, badge }: {
+    title: string;
+    value: number;
+    icon: React.ReactNode;
+    color: 'primary' | 'secondary' | 'success' | 'warning' | 'error' | 'info';
+    onClick?: () => void;
+    badge?: number;
+  }) => (
+    <Card 
+      sx={{ cursor: onClick ? 'pointer' : 'default', '&:hover': onClick ? { boxShadow: 6 } : {} }}
+      onClick={onClick}
+    >
       <CardContent>
         <Box display="flex" alignItems="center" justifyContent="space-between">
           <Box>
-            <Typography color="text.secondary" gutterBottom variant="body2">
+            <Typography color="text.secondary" variant="body2" gutterBottom>
               {title}
             </Typography>
-            <Typography variant="h4" component="div" fontWeight="bold">
-              {value}
+            <Typography variant="h4" fontWeight="bold">
+              {value.toLocaleString()}
             </Typography>
           </Box>
-          <Box
-            sx={{
-              backgroundColor: color,
-              borderRadius: '50%',
-              p: 2,
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              '& svg': {
-                fontSize: 30,
-              },
-            }}
-          >
-            {icon}
-          </Box>
+          <Badge badgeContent={badge} color={color}>
+            <Box
+              sx={{ p: 2, borderRadius: 2, bgcolor: `${color}.light`, color: `${color}.main` }}
+            >
+              {icon}
+            </Box>
+          </Badge>
         </Box>
       </CardContent>
     </Card>
   );
-};
 
-const DashboardPage: React.FC = () => {
-  // ALL HOOKS AT THE TOP
-  const theme = useTheme();
-  const navigate = useNavigate();
-  const { user } = useAuth();
-  
-  // State hooks
-  const [stats, setStats] = useState({
-    todayReceived: 0,
-    readyForDispatch: 0,
-    todayDispatched: 0,
-  });
-  const [loading, setLoading] = useState(true);
-
-  // Effect hooks
-  useEffect(() => {
-    let mounted = true;
-    
-    const loadData = async () => {
-      try {
-        const todayStats = await packageService.getTodayStats();
-        if (mounted) {
-          setStats({
-            todayReceived: todayStats.received,
-            readyForDispatch: todayStats.ready,
-            todayDispatched: todayStats.dispatched,
-          });
-        }
-      } catch (error) {
-        console.error('Dashboard load error:', error);
-      } finally {
-        if (mounted) {
-          setLoading(false);
-        }
-      }
-    };
-
-    loadData();
-
-    return () => {
-      mounted = false;
-    };
-  }, []);
-
-  // Callback hooks
-  const handleNavigateToReceive = useCallback(() => {
-    console.log('Navigating to receive page...');
-    navigate('/receive');
-  }, [navigate]);
-
-  const handleDispatchAlert = useCallback(() => {
-    alert('Dispatch page coming soon!');
-  }, []);
-
-  // Render loading state
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="80vh">
@@ -127,137 +140,87 @@ const DashboardPage: React.FC = () => {
     );
   }
 
-  // Main render
   return (
     <Box p={3}>
       {/* Header */}
-      <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
+      <Box display="flex" justifyContent="space-between" alignItems="center" mb={4}>
         <Box>
-          <Typography variant="h4" fontWeight="bold" gutterBottom>
-            Dashboard Overview
+          <Typography variant="h4" fontWeight="bold">
+            Dashboard
           </Typography>
           <Typography variant="body1" color="text.secondary">
-            Welcome back, {user?.email}
+            Welcome back, {user?.displayName || user?.email}
           </Typography>
         </Box>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={handleNavigateToReceive}
-          sx={{ borderRadius: 25 }}
-        >
-          Receive Package
-        </Button>
+        <Box display="flex" gap={2}>
+          <Button
+            variant="outlined"
+            startIcon={<Search />}
+            onClick={() => navigate('/search')}
+          >
+            Global Search
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={<Add />}
+            onClick={() => navigate('/receive')}
+          >
+            Receive Package
+          </Button>
+        </Box>
       </Box>
 
-      {/* Stats Cards */}
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
+          {error}
+        </Alert>
+      )}
+
+      {/* Main Stats Cards with LIVE DATA */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatsCard
+          <StatCard
             title="Today's Received"
             value={stats.todayReceived}
-            icon={<Inventory />}
-            color={theme.palette.primary.main}
+            icon={<PackageIcon fontSize="large" />} 
+            color="primary"
+            onClick={() => navigate('/packages')}
           />
         </Grid>
+        
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatsCard
-            title="Ready for Dispatch"
-            value={stats.readyForDispatch}
-            icon={<LocalShipping />}
-            color={theme.palette.success.main}
+          <StatCard
+            title="Pending Returns"
+            value={stats.pendingReturnItems}
+            icon={<AssignmentReturn fontSize="large" />}
+            color="warning"
+            onClick={() => navigate('/returns')}
+            badge={stats.pendingReturnItems > 0 ? stats.pendingReturnItems : undefined}
           />
         </Grid>
+        
         <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatsCard
+          <StatCard
+            title="Available Inventory"
+            value={stats.totalInventoryItems}
+            icon={<Inventory fontSize="large" />}
+            color="success"
+            onClick={() => navigate('/inventory')}
+          />
+        </Grid>
+        
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+          <StatCard
             title="Today's Dispatched"
             value={stats.todayDispatched}
-            icon={<LocalShipping />}
-            color={theme.palette.warning.main}
-          />
-        </Grid>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
-          <StatsCard
-            title="Pending Returns"
-            value={0}
-            icon={<AssignmentReturn />}
-            color={theme.palette.error.main}
+            icon={<LocalShipping fontSize="large" />}
+            color="info"
+            onClick={() => navigate('/delivery')}
           />
         </Grid>
       </Grid>
-
-      {/* Quick Actions */}
-      <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                Quick Actions
-              </Typography>
-              <Box display="flex" flexDirection="column" gap={2}>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<Inventory />}
-                  onClick={handleNavigateToReceive}
-                  sx={{ justifyContent: 'flex-start', p: 2 }}
-                >
-                  Receive New Package
-                </Button>
-                <Button
-                  fullWidth
-                  variant="outlined"
-                  startIcon={<LocalShipping />}
-                  onClick={handleDispatchAlert}
-                  sx={{ justifyContent: 'flex-start', p: 2 }}
-                >
-                  Process Dispatch
-                </Button>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-
-        <Grid size={{ xs: 12, md: 6 }}>
-          <Card>
-            <CardContent>
-              <Typography variant="h6" gutterBottom>
-                System Status
-              </Typography>
-              <Box p={2}>
-                <Typography variant="body2" color="text.secondary">
-                  • Firebase: Connected ✅
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  • Authentication: Active ✅
-                </Typography>
-                <Typography variant="body2" color="text.secondary">
-                  • Database: Ready ✅
-                </Typography>
-                <Typography variant="body2" color="text.secondary" sx={{ mt: 2 }}>
-                  User: {user?.email}
-                </Typography>
-                <Button 
-                  size="small" 
-                  onClick={() => auth.signOut()}
-                  sx={{ mt: 1 }}
-                >
-                  Logout
-                </Button>
-              </Box>
-            </CardContent>
-          </Card>
-        </Grid>
-      </Grid>
-
-      {/* Debug Info */}
-      <Box mt={2} p={2} bgcolor="grey.100" borderRadius={1}>
-        <Typography variant="body2" color="text.secondary">
-          Debug: Stats loaded - Received: {stats.todayReceived}, Ready: {stats.readyForDispatch}, Dispatched: {stats.todayDispatched}
-        </Typography>
-      </Box>
     </Box>
   );
 };
 
-export default DashboardPage;
+export default Dashboard;

@@ -744,7 +744,7 @@ const DeliveryPage: React.FC = () => {
                   item.batches?.map((batch: InventoryBatch) => (
                     <TableRow key={batch.id}>
                       <TableCell>{batch.productName}</TableCell>
-                      <TableCell fontFamily="monospace">{batch.sku}</TableCell>
+                      <TableCell sx={{ fontFamily: 'monospace' }}>{batch.sku}</TableCell>
                       <TableCell>
                         <Typography color="success.main" fontWeight="bold">
                           {batch.availableQuantity}

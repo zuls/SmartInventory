@@ -1,4 +1,3 @@
-// src/pages/ReceivePage.tsx
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -12,6 +11,7 @@ import {
   MenuItem,
   Grid,
   CircularProgress,
+  IconButton,
 } from '@mui/material';
 import {
   Inventory,
@@ -20,19 +20,26 @@ import {
   ArrowBack,
 } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
+import { yupResolver } from '@hookform/resolvers/yup';
+import * as yup from 'yup';
 import { useAuth } from '../hooks/useAuth';
 import { packageService } from '../services/packageService';
 import { ReceivePackageForm, Carrier } from '../types';
 import BarcodeScanner from '../components/BarcodeScanner';
 
-const carriers = [
-  { value: 'FedEx', label: 'FedEx' },
-  { value: 'UPS', label: 'UPS' },
-  { value: 'Amazon', label: 'Amazon' },
-  { value: 'USPS', label: 'USPS' },
-  { value: 'DHL', label: 'DHL' },
-  { value: 'Other', label: 'Other' },
-];
+const carriers = Object.values(Carrier);
+
+// Updated Validation Schema
+const schema = yup.object({
+  trackingNumber: yup.string().required('Tracking number is required'),
+  carrier: yup.string().oneOf(carriers).required('Carrier is required'),
+  productName: yup.string().required('Product name is required'),
+  sku: yup.string().default(''),
+  barcode: yup.string().default(''),
+  quantity: yup.number().min(1, 'Quantity must be at least 1').integer().required('Quantity is required'),
+  notes: yup.string().default(''),
+});
+
 
 const ReceivePage: React.FC = () => {
   const navigate = useNavigate();
@@ -50,26 +57,19 @@ const ReceivePage: React.FC = () => {
     setValue,
     formState: { errors },
   } = useForm<ReceivePackageForm>({
+    resolver: yupResolver(schema),
     defaultValues: {
       trackingNumber: '',
-      carrier: 'FedEx' as Carrier,
+      carrier: Carrier.FEDEX,
       productName: '',
       sku: '',
       barcode: '',
+      quantity: 1, // Default quantity
       notes: '',
     },
   });
 
   const onSubmit = async (data: ReceivePackageForm) => {
-    // Simple validation
-    if (!data.trackingNumber.trim()) {
-      setError('Tracking number is required');
-      return;
-    }
-    if (!data.productName.trim()) {
-      setError('Product name is required');
-      return;
-    }
     if (!user) {
       setError('User not authenticated');
       return;
@@ -80,20 +80,18 @@ const ReceivePage: React.FC = () => {
     setSuccess(false);
 
     try {
-      console.log('Submitting package data:', data);
+      // The packageService will now handle the quantity
       const packageId = await packageService.createPackage(data, user.uid);
-      console.log('Package created with ID:', packageId);
       
       setSuccess(true);
-      reset(); // Clear form
+      reset(); 
       
-      // Show success message for 2 seconds, then redirect
       setTimeout(() => {
-        navigate('/dashboard');
+        navigate('/inventory');
       }, 2000);
-    } catch (error) {
-      console.error('Error creating package:', error);
-      setError(error instanceof Error ? error.message : 'Failed to create package');
+    } catch (err) {
+      console.error('Error creating package:', err);
+      setError(err instanceof Error ? err.message : 'Failed to create package');
     } finally {
       setLoading(false);
     }
@@ -115,7 +113,6 @@ const ReceivePage: React.FC = () => {
 
   return (
     <Box p={3}>
-      {/* Header */}
       <Box display="flex" alignItems="center" gap={2} mb={3}>
         <Button
           startIcon={<ArrowBack />}
@@ -129,59 +126,46 @@ const ReceivePage: React.FC = () => {
         </Typography>
       </Box>
 
-      {/* Success Alert */}
       {success && (
         <Alert severity="success" sx={{ mb: 3 }}>
-          Package received successfully! Redirecting to dashboard...
+          Package and inventory batch created successfully! Redirecting...
         </Alert>
       )}
 
-      {/* Error Alert */}
       {error && (
         <Alert severity="error" sx={{ mb: 3 }} onClose={() => setError(null)}>
           {error}
         </Alert>
       )}
 
-      {/* Form */}
       <Card>
         <CardContent sx={{ p: 4 }}>
-          <Box display="flex" alignItems="center" gap={2} mb={3}>
-            <Inventory color="primary" />
-            <Typography variant="h6">Package Information</Typography>
-          </Box>
-
-          <Box component="form" onSubmit={handleSubmit(onSubmit)}>
+          <form onSubmit={handleSubmit(onSubmit)}>
             <Grid container spacing={3}>
-              {/* First Row - Tracking Number with Scanner */}
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Box display="flex" gap={1}>
-                  <Controller
-                    name="trackingNumber"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        fullWidth
-                        label="Tracking Number *"
-                        error={!!errors.trackingNumber}
-                        helperText={errors.trackingNumber?.message || 'Enter or scan tracking number'}
-                        placeholder="1Z999AA1234567890"
-                      />
-                    )}
-                  />
-                  <Button
-                    variant="outlined"
-                    onClick={() => handleScanBarcode('tracking')}
-                    sx={{ minWidth: 'auto', px: 2 }}
-                    title="Scan tracking barcode"
-                  >
-                    <QrCodeScanner />
-                  </Button>
-                </Box>
+              <Grid xs={12} md={6}>
+                <Controller
+                  name="trackingNumber"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField
+                      {...field}
+                      fullWidth
+                      label="Tracking Number *"
+                      error={!!errors.trackingNumber}
+                      helperText={errors.trackingNumber?.message}
+                      InputProps={{
+                        endAdornment: (
+                            <IconButton onClick={() => handleScanBarcode('tracking')} edge="end">
+                                <QrCodeScanner />
+                            </IconButton>
+                        )
+                      }}
+                    />
+                  )}
+                />
               </Grid>
 
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid xs={12} md={6}>
                 <Controller
                   name="carrier"
                   control={control}
@@ -192,11 +176,11 @@ const ReceivePage: React.FC = () => {
                       fullWidth
                       label="Carrier *"
                       error={!!errors.carrier}
-                      helperText={errors.carrier?.message || 'Select shipping carrier'}
+                      helperText={errors.carrier?.message}
                     >
                       {carriers.map((option) => (
-                        <MenuItem key={option.value} value={option.value}>
-                          {option.label}
+                        <MenuItem key={option} value={option}>
+                          {option}
                         </MenuItem>
                       ))}
                     </TextField>
@@ -204,8 +188,7 @@ const ReceivePage: React.FC = () => {
                 />
               </Grid>
 
-              {/* Second Row */}
-              <Grid size={{ xs: 12 }}>
+              <Grid xs={12}>
                 <Controller
                   name="productName"
                   control={control}
@@ -215,15 +198,13 @@ const ReceivePage: React.FC = () => {
                       fullWidth
                       label="Product Name *"
                       error={!!errors.productName}
-                      helperText={errors.productName?.message || 'Enter the product description'}
-                      placeholder="Laptop Computer, Monitor, etc."
+                      helperText={errors.productName?.message}
                     />
                   )}
                 />
               </Grid>
-
-              {/* Third Row */}
-              <Grid size={{ xs: 12, md: 6 }}>
+              
+              <Grid xs={12} md={6}>
                 <Controller
                   name="sku"
                   control={control}
@@ -231,40 +212,31 @@ const ReceivePage: React.FC = () => {
                     <TextField
                       {...field}
                       fullWidth
-                      label="SKU"
-                      placeholder="Product SKU (optional)"
+                      label="SKU (Stock Keeping Unit)"
+                      placeholder="e.g., MON-DELL-24-BLK"
                     />
                   )}
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Box display="flex" gap={1}>
-                  <Controller
-                    name="barcode"
+              <Grid xs={12} md={6}>
+                 <Controller
+                    name="quantity"
                     control={control}
                     render={({ field }) => (
                       <TextField
                         {...field}
                         fullWidth
-                        label="Barcode"
-                        placeholder="Scan or enter barcode"
+                        label="Quantity *"
+                        type="number"
+                        error={!!errors.quantity}
+                        helperText={errors.quantity?.message || 'Number of items in this shipment'}
                       />
                     )}
                   />
-                  <Button
-                    variant="outlined"
-                    onClick={() => handleScanBarcode('barcode')}
-                    sx={{ minWidth: 'auto', px: 2 }}
-                    title="Scan product barcode"
-                  >
-                    <QrCodeScanner />
-                  </Button>
-                </Box>
               </Grid>
 
-              {/* Fourth Row */}
-              <Grid size={{ xs: 12 }}>
+              <Grid xs={12}>
                 <Controller
                   name="notes"
                   control={control}
@@ -275,14 +247,13 @@ const ReceivePage: React.FC = () => {
                       multiline
                       rows={3}
                       label="Notes"
-                      placeholder="Additional notes about the package (optional)"
+                      placeholder="e.g., Box was slightly damaged, items appear okay."
                     />
                   )}
                 />
               </Grid>
 
-              {/* Submit Button */}
-              <Grid size={{ xs: 12 }}>
+              <Grid xs={12}>
                 <Box display="flex" gap={2} justifyContent="flex-end" mt={2}>
                   <Button
                     variant="outlined"
@@ -296,31 +267,22 @@ const ReceivePage: React.FC = () => {
                     variant="contained"
                     startIcon={loading ? <CircularProgress size={20} /> : <Save />}
                     disabled={loading}
-                    sx={{ minWidth: 150 }}
                   >
                     {loading ? 'Saving...' : 'Receive Package'}
                   </Button>
                 </Box>
               </Grid>
             </Grid>
-          </Box>
+          </form>
         </CardContent>
       </Card>
 
-      {/* Barcode Scanner Dialog */}
       <BarcodeScanner
         open={scannerOpen}
         onClose={() => setScannerOpen(false)}
         onScan={handleScanResult}
         title={scanType === 'tracking' ? 'Scan Tracking Barcode' : 'Scan Product Barcode'}
       />
-
-      {/* Debug Info */}
-      <Box mt={3} p={2} bgcolor="grey.100" borderRadius={1}>
-        <Typography variant="body2" color="text.secondary">
-          Debug: User ID: {user?.uid}, Email: {user?.email}
-        </Typography>
-      </Box>
     </Box>
   );
 };
