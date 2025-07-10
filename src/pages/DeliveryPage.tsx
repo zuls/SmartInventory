@@ -47,9 +47,10 @@ import {
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import * as yup from 'yup';
+import { ObjectSchema } from 'yup';
 import { useAuth } from '../hooks/useAuth';
 import { inventoryService } from '../services/inventoryService';
-import { DeliveryForm, Carrier, InventoryBatch, ShippingLabelData } from '../types';
+import { DeliveryForm, Carrier, InventoryBatch } from '../types';
 import { format } from 'date-fns';
 
 const carriers = [
@@ -61,26 +62,26 @@ const carriers = [
   { value: 'Other', label: 'Other' },
 ];
 
-const schema = yup.object({
+const schema = yup.object().shape({
   inventoryBatchId: yup.string().required('Inventory batch selection is required'),
-  productSerialNumber: yup.string(),
-  shippingLabelData: yup.object({
+  productSerialNumber: yup.string().optional(),
+  shippingLabelData: yup.object().shape({
     labelNumber: yup.string().required('Label number is required'),
     carrier: yup.string().required('Carrier is required'),
-    trackingNumber: yup.string(),
+    trackingNumber: yup.string().optional(),
     destination: yup.string().required('Destination is required'),
-    weight: yup.string(),
-    dimensions: yup.string(),
-    serviceType: yup.string(),
-  }),
-  customerInfo: yup.object({
-    name: yup.string(),
-    address: yup.string(),
-    email: yup.string().email('Invalid email format'),
-    phone: yup.string(),
-  }),
-  deliveryTracking: yup.string(),
-});
+    weight: yup.string().optional(),
+    dimensions: yup.string().optional(),
+    serviceType: yup.string().optional(),
+  }).required(),
+  customerInfo: yup.object().shape({
+    name: yup.string().optional(),
+    address: yup.string().optional(),
+    email: yup.string().email('Invalid email format').optional(),
+    phone: yup.string().optional(),
+  }).required(),
+  deliveryTracking: yup.string().optional(),
+}) as ObjectSchema<DeliveryForm>;
 
 const DeliveryPage: React.FC = () => {
   const navigate = useNavigate();

@@ -27,7 +27,7 @@ import {
 import {
   Menu as MenuIcon,
   Dashboard,
-  Package,
+  Inventory2,
   AssignmentReturn,
   Inventory,
   LocalShipping,
@@ -92,7 +92,7 @@ const Layout: React.FC = () => {
         {
           id: 'packages',
           title: 'Packages',
-          icon: <Package />,
+          icon: <Inventory2 />,
           path: '/packages',
           badge: 12, // Mock badge count
         },

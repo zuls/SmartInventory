@@ -13,6 +13,7 @@ import {
   List,
   ListItem,
   ListItemText,
+  ListItemButton,
   ListItemAvatar,
   Avatar,
   Chip,
@@ -460,15 +461,15 @@ const GlobalSearchPage: React.FC = () => {
                       filteredResults.map((result, index) => (
                         <React.Fragment key={`${result.type}-${result.id}`}>
                           <ListItem
-                            button
-                            onClick={() => handleResultClick(result)}
-                            sx={{
-                              borderRadius: 1,
-                              mb: 1,
-                              '&:hover': {
-                                bgcolor: 'action.hover',
-                              },
-                            }}
+                              sx={{
+                                borderRadius: 1,
+                                mb: 1,
+                                cursor: 'pointer',
+                                '&:hover': {
+                                  bgcolor: 'action.hover',
+                                },
+                              }}
+                              onClick={() => handleResultClick(result)}
                           >
                             <ListItemAvatar>
                               <Avatar sx={{ bgcolor: `${getResultColor(result.type)}.light` }}>
@@ -592,9 +593,8 @@ const GlobalSearchPage: React.FC = () => {
                 </Typography>
                 <List dense>
                   {recentSearches.map((search, index) => (
-                    <ListItem
+                    <ListItemButton
                       key={index}
-                      button
                       onClick={() => {
                         setSearchTerm(search);
                         debouncedSearch(search);
@@ -606,7 +606,7 @@ const GlobalSearchPage: React.FC = () => {
                         </Avatar>
                       </ListItemAvatar>
                       <ListItemText primary={search} />
-                    </ListItem>
+                    </ListItemButton>
                   ))}
                 </List>
               </CardContent>
@@ -622,7 +622,7 @@ const GlobalSearchPage: React.FC = () => {
               <Box display="flex" flexDirection="column" gap={2}>
                 <Box display="flex" justifyContent="space-between" alignItems="center">
                   <Box display="flex" alignItems="center" gap={1}>
-                    <Package color="primary" />
+                    <Inventory2 color="primary" />
                     <Typography variant="body2">Active Packages</Typography>
                   </Box>
                   <Chip label="24" color="primary" size="small" />

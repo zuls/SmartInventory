@@ -21,8 +21,8 @@ import ReturnDetailPage from './pages/ReturnDetailPage';
 import InventoryPage from './pages/InventoryPage';
 import DeliveryPage from './pages/DeliveryPage';
 import GlobalSearchPage from './pages/GlobalSearchPage';
-import StockLogPage from './pages/StockLogPage';
-import SettingsPage from './pages/SettingsPage';
+import StockLogPage from './pages/StockLogPage.tsx';
+import SettingsPage from './pages/SettingsPage.tsx';
 
 const AppContent: React.FC = () => {
   const { user, loading } = useAuth();
