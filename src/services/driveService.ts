@@ -45,34 +45,56 @@ export class DriveService {
     }
   }
 
+  // Toggle between mock and real uploads
+  private USE_REAL_UPLOADS = false; // Set to true when you want real uploads
+
   // Simple sign-in using Google's built-in picker
   async signInAndUpload(files: File[], userId: string): Promise<DriveFileReference[]> {
     try {
       console.log('🔐 Starting upload process...');
       
-      // For now, just use mock upload since we don't have complex auth set up
-      console.log('📤 Using mock upload for files:', files.map(f => f.name));
-      
-      // Simulate upload delay
-      await new Promise(resolve => setTimeout(resolve, 1500));
-      
-      // Return mock drive file references that look real
-      const mockFiles = files.map((file, index) => ({
-        fileId: `mock_file_${Date.now()}_${index}`,
-        fileName: `${Date.now()}-${file.name}`,
-        webViewLink: `https://drive.google.com/file/d/mock_file_${Date.now()}_${index}/view`,
-        fileType: 'image' as const,
-        uploadedAt: new Date().toISOString(),
-        uploadedBy: userId,
-      }));
-      
-      console.log('✅ Mock upload completed successfully');
-      return mockFiles;
+      if (this.USE_REAL_UPLOADS) {
+        // Real upload implementation
+        console.log('📤 Using REAL Google Drive upload');
+        return await this.uploadFilesReal(files, userId, 'access-token-here');
+      } else {
+        // Mock upload for testing
+        console.log('📤 Using MOCK upload (no files actually uploaded)');
+        
+        // Simulate upload delay
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        
+        // Return mock drive file references that look real
+        const mockFiles = files.map((file, index) => ({
+          fileId: `mock_file_${Date.now()}_${index}`,
+          fileName: `${Date.now()}-${file.name}`,
+          webViewLink: `https://drive.google.com/file/d/mock_file_${Date.now()}_${index}/view`,
+          fileType: 'image' as const,
+          uploadedAt: new Date().toISOString(),
+          uploadedBy: userId,
+        }));
+        
+        console.log('✅ Mock upload completed successfully');
+        console.log('⚠️  NOTE: Files were NOT actually uploaded to Google Drive');
+        return mockFiles;
+      }
       
     } catch (error) {
       console.error('❌ Upload failed:', error);
       throw new Error(error instanceof Error ? error.message : 'Upload failed');
     }
+  }
+
+  // Enable real uploads (call this when ready)
+  enableRealUploads(): void {
+    this.USE_REAL_UPLOADS = true;
+    console.log('✅ Real Google Drive uploads enabled');
+  }
+
+  // Disable real uploads (back to mock)
+  enableMockUploads(): void {
+    this.USE_REAL_UPLOADS = false;
+    console.log('📝 Mock uploads enabled');
   }
 
   // Alternative: Direct upload without complex authentication

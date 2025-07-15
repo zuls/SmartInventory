@@ -1,4 +1,4 @@
-// src/pages/ReturnDetailPage.tsx
+// src/pages/ReturnDetailPage.tsx - Updated with mock image support
 import React, { useState, useEffect, useCallback } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import {
@@ -97,7 +97,6 @@ const ReturnDetailPage: React.FC = () => {
     }
   };
   
-  // --- CORRECTED FUNCTION ---
   const getStatusChip = (status: ReturnStatus) => {
     switch (status) {
       case ReturnStatus.RECEIVED:
@@ -107,8 +106,7 @@ const ReturnDetailPage: React.FC = () => {
       case ReturnStatus.MOVED_TO_INVENTORY:
         return <Chip label="In Inventory" color="success" />;
     }
-    // Fallback for any unexpected status values at runtime
-    return <Chip label={(status as string).toUpperCase()} />;
+    return <Chip label={String(status).toUpperCase()} />;
   };
 
   if (loading) {
@@ -158,7 +156,7 @@ const ReturnDetailPage: React.FC = () => {
       </Box>
 
       <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 7 }}>
+        <Grid size={{ xs: 12, md: 8 }}>
             <Card>
                 <CardContent>
                     <Box display="flex" justifyContent="space-between" alignItems="start">
@@ -193,17 +191,42 @@ const ReturnDetailPage: React.FC = () => {
             </Card>
         </Grid>
 
-        <Grid size={{ xs: 12, md: 5 }}>
+        <Grid size={{ xs: 12, md: 4 }}>
             <Card>
-                <CardContent>
-                    <Typography variant="h6" gutterBottom>
-                      Attached Images
-                    </Typography>
-                    <Paper variant="outlined" sx={{ p: 1 }}>
-                      {returnData.driveFiles && returnData.driveFiles.length > 0 ? (
-                        <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 1 }}>
-                          {returnData.driveFiles.map((file) => (
-                            <Link key={file.fileId} href={file.webViewLink} target="_blank" rel="noopener noreferrer">
+              <CardContent>
+                <Typography variant="h6" gutterBottom>
+                  Attached Images ({returnData.driveFiles?.length || 0})
+                </Typography>
+                <Paper variant="outlined" sx={{ p: 1 }}>
+                  {returnData.driveFiles && returnData.driveFiles.length > 0 ? (
+                    <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(100px, 1fr))', gap: 1 }}>
+                      {returnData.driveFiles.map((file) => (
+                        <Box key={file.fileId}>
+                          {/* Check if it's a mock file */}
+                          {file.fileId.startsWith('mock_file_') ? (
+                            <Box
+                              sx={{
+                                width: '100%',
+                                height: '100px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                bgcolor: 'grey.200',
+                                borderRadius: 1,
+                                border: '1px solid',
+                                borderColor: 'divider',
+                                flexDirection: 'column',
+                                cursor: 'pointer'
+                              }}
+                              onClick={() => alert(`Mock image: ${file.fileName}\nThis would open the actual image in a real implementation.`)}
+                            >
+                              <ImageIcon sx={{ fontSize: 24, color: 'grey.500' }} />
+                              <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5 }}>
+                                Mock
+                              </Typography>
+                            </Box>
+                          ) : (
+                            <Link href={file.webViewLink} target="_blank" rel="noopener noreferrer">
                               <Box
                                 component="img"
                                 src={file.webViewLink.replace("view?usp=drivesdk", "uc?export=view")}
@@ -219,18 +242,39 @@ const ReturnDetailPage: React.FC = () => {
                                     opacity: 0.8,
                                   }
                                 }}
+                                onError={(e) => {
+                                  // If real image fails to load, show placeholder
+                                  const target = e.target as HTMLImageElement;
+                                  target.style.display = 'none';
+                                  const parent = target.parentElement;
+                                  if (parent) {
+                                    parent.innerHTML = `
+                                      <div style="width: 100%; height: 100px; display: flex; align-items: center; justify-content: center; background-color: #f5f5f5; border-radius: 4px; border: 1px solid #e0e0e0; flex-direction: column;">
+                                        <svg width="24" height="24" viewBox="0 0 24 24" fill="#999">
+                                          <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+                                        </svg>
+                                        <span style="font-size: 10px; color: #999; margin-top: 2px;">Not available</span>
+                                      </div>
+                                    `;
+                                  }
+                                }}
                               />
                             </Link>
-                          ))}
+                          )}
+                          <Typography variant="caption" noWrap sx={{ display: 'block', mt: 0.5, px: 0.5 }}>
+                            {file.fileName}
+                          </Typography>
                         </Box>
-                      ) : (
-                        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100px', color: 'text.secondary' }}>
-                          <ImageIcon />
-                          <Typography variant="body2">No images attached</Typography>
-                        </Box>
-                      )}
-                    </Paper>
-                </CardContent>
+                      ))}
+                    </Box>
+                  ) : (
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100px', color: 'text.secondary' }}>
+                      <ImageIcon />
+                      <Typography variant="body2">No images attached</Typography>
+                    </Box>
+                  )}
+                </Paper>
+              </CardContent>
             </Card>
         </Grid>
       </Grid>

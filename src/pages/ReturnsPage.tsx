@@ -652,21 +652,61 @@ const ReturnsPage: React.FC = () => {
                       {selectedReturn.driveFiles.map((file, index) => (
                         <Grid size={4} key={file.fileId}>
                           <Card sx={{ cursor: 'pointer' }}>
-                            <Box
-                              component="img"
-                              src={file.webViewLink.replace("view?usp=drivesdk", "uc?export=view")}
-                              alt={file.fileName}
-                              sx={{
-                                width: '100%',
-                                height: 120,
-                                objectFit: 'cover',
-                                borderRadius: 1,
-                              }}
-                              onClick={() => window.open(file.webViewLink, '_blank')}
-                            />
+                            {/* Check if it's a mock file (starts with mock_file_) */}
+                            {file.fileId.startsWith('mock_file_') ? (
+                              <Box
+                                sx={{
+                                  width: '100%',
+                                  height: 120,
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  bgcolor: 'grey.200',
+                                  borderRadius: 1,
+                                  flexDirection: 'column'
+                                }}
+                              >
+                                <ImageIcon sx={{ fontSize: 32, color: 'grey.500', mb: 1 }} />
+                                <Typography variant="caption" color="text.secondary">
+                                  Mock Image
+                                </Typography>
+                              </Box>
+                            ) : (
+                              <Box
+                                component="img"
+                                src={file.webViewLink.replace("view?usp=drivesdk", "uc?export=view")}
+                                alt={file.fileName}
+                                sx={{
+                                  width: '100%',
+                                  height: 120,
+                                  objectFit: 'cover',
+                                  borderRadius: 1,
+                                }}
+                                onClick={() => window.open(file.webViewLink, '_blank')}
+                                onError={(e) => {
+                                  // If image fails to load, show placeholder
+                                  const target = e.target as HTMLElement;
+                                  target.style.display = 'none';
+                                  const parent = target.parentElement;
+                                  if (parent) {
+                                    parent.innerHTML = `
+                                      <div style="width: 100%; height: 120px; display: flex; align-items: center; justify-content: center; background-color: #f5f5f5; border-radius: 4px; flex-direction: column;">
+                                        <svg width="32" height="32" viewBox="0 0 24 24" fill="#999">
+                                          <path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/>
+                                        </svg>
+                                        <span style="font-size: 12px; color: #999; margin-top: 4px;">Image not available</span>
+                                      </div>
+                                    `;
+                                  }
+                                }}
+                              />
+                            )}
                             <CardContent sx={{ p: 1 }}>
                               <Typography variant="caption" noWrap>
                                 {file.fileName}
+                              </Typography>
+                              <Typography variant="caption" display="block" color="text.secondary">
+                                {file.fileId.startsWith('mock_file_') ? 'Mock Upload' : 'Google Drive'}
                               </Typography>
                             </CardContent>
                           </Card>
