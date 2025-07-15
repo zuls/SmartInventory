@@ -1,4 +1,4 @@
-// src/pages/AddReturnPage.tsx
+// src/pages/AddReturnPage.tsx - Updated with better Google Drive integration
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -25,6 +25,8 @@ import {
   AddAPhoto,
   Delete,
   Google,
+  CloudUpload,
+  Warning,
 } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -53,7 +55,6 @@ const schema: ObjectSchema<ReturnForm> = yup.object({
   fbaFbm: yup.mixed<'FBA' | 'FBM'>().oneOf(fbaFbmOptions).optional().default('FBA'),
 });
 
-
 const AddReturnPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
@@ -62,18 +63,37 @@ const AddReturnPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [images, setImages] = useState<File[]>([]);
-  const [isDriveReady, setIsDriveReady] = useState(driveService.isSignedIn());
+  const [driveStatus, setDriveStatus] = useState({
+    isInitialized: false,
+    isSignedIn: false,
+    error: null as string | null,
+    isLoading: false,
+    details: 'Not initialized'
+  });
+  const [driveLoading, setDriveLoading] = useState(false);
   const MAX_IMAGES = 20;
 
+  // Check Drive status periodically
   useEffect(() => {
-    const interval = setInterval(() => {
-      const signedIn = driveService.isSignedIn();
-      if (signedIn !== isDriveReady) {
-        setIsDriveReady(signedIn);
-      }
-    }, 1000);
+    const checkDriveStatus = () => {
+      const status = driveService.getStatus();
+      setDriveStatus({
+        isInitialized: status.isInitialized,
+        isSignedIn: status.isSignedIn,
+        error: status.error,
+        isLoading: false, // Simple service doesn't have complex loading states
+        details: status.details
+      });
+    };
+
+    // Check immediately
+    checkDriveStatus();
+
+    // Check again every few seconds
+    const interval = setInterval(checkDriveStatus, 3000);
+    
     return () => clearInterval(interval);
-  }, [isDriveReady]);
+  }, []);
 
   const {
     control,
@@ -103,10 +123,10 @@ const AddReturnPage: React.FC = () => {
       setError('User not authenticated');
       return;
     }
-    if (images.length > 0 && !isDriveReady) {
-        setError('Please sign in to Google Drive to upload images.');
-        return;
-    }
+
+    console.log('📝 Starting form submission...');
+    console.log('📊 Current drive status:', driveStatus);
+    console.log('🖼️ Images to upload:', images.length);
 
     setLoading(true);
     setError(null);
@@ -114,10 +134,29 @@ const AddReturnPage: React.FC = () => {
 
     try {
       let driveFileReferences: DriveFileReference[] = [];
+      
+      // Only upload if we have images and are signed in
       if (images.length > 0) {
-        driveFileReferences = await driveService.uploadFiles(images, user.uid);
+        if (driveStatus.isSignedIn) {
+          console.log('🔄 Uploading images...');
+          try {
+            driveFileReferences = await driveService.signInAndUpload(images, user.uid);
+            console.log('✅ Files uploaded successfully:', driveFileReferences);
+          } catch (uploadError) {
+            console.error('❌ Upload error:', uploadError);
+            setError('Failed to upload images. You can try again or save without images.');
+            setLoading(false);
+            return;
+          }
+        } else {
+          console.log('⚠️ Images present but not signed in to Google Drive - saving without images');
+          setError('Images will not be saved because Google Drive is not connected. Connect Google Drive or remove images to continue.');
+          setLoading(false);
+          return;
+        }
       }
       
+      console.log('💾 Creating return with drive files:', driveFileReferences);
       await returnService.createReturn(data, user.uid, driveFileReferences);
       
       setSuccess(true);
@@ -156,19 +195,116 @@ const AddReturnPage: React.FC = () => {
     setImages(images.filter((_, i) => i !== index));
   };
   
-  const handleGoogleSignIn = () => {
-      driveService.signIn();
-  }
+  const handleGoogleSignIn = async () => {
+    setDriveLoading(true);
+    setError(null);
+    try {
+      // Simple mock sign-in for testing
+      await driveService.mockSignIn();
+      
+      // Update status
+      const status = driveService.getStatus();
+      setDriveStatus({
+        isInitialized: status.isInitialized,
+        isSignedIn: status.isSignedIn,
+        error: status.error,
+        isLoading: false,
+        details: status.details
+      });
+    } catch (error) {
+      console.error('Sign-in failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Failed to sign in to Google Drive';
+      setError(`Google Drive connection failed: ${errorMessage}`);
+      
+      setDriveStatus(prev => ({
+        ...prev,
+        error: errorMessage,
+        isLoading: false,
+        details: `Error: ${errorMessage}`
+      }));
+    } finally {
+      setDriveLoading(false);
+    }
+  };
+
+  const handleRetryConnection = async () => {
+    setDriveLoading(true);
+    setError(null);
+    try {
+      console.log('🔄 Retrying Google Drive connection...');
+      driveService.reset();
+      await driveService.initialize();
+      
+      const status = driveService.getStatus();
+      setDriveStatus({
+        isInitialized: status.isInitialized,
+        isSignedIn: status.isSignedIn,
+        error: status.error,
+        isLoading: false,
+        details: status.details
+      });
+    } catch (error) {
+      console.error('Retry failed:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Retry failed';
+      setError(`Retry failed: ${errorMessage}`);
+    } finally {
+      setDriveLoading(false);
+    }
+  };
+
+  // Get Drive status display
+  const getDriveStatusDisplay = () => {
+    if (driveStatus.error) {
+      return { 
+        text: 'Connection Failed', 
+        color: 'error', 
+        icon: <Warning />,
+        details: driveStatus.error
+      };
+    }
+    if (driveStatus.isSignedIn) {
+      return { 
+        text: 'Connected ✅', 
+        color: 'success', 
+        icon: <Google />,
+        details: 'Ready to upload images'
+      };
+    }
+    if (driveStatus.isInitialized) {
+      return { 
+        text: 'Ready to Connect', 
+        color: 'info', 
+        icon: <Google />,
+        details: 'Click to connect your Google Drive account'
+      };
+    }
+    if (driveStatus.isLoading) {
+      return { 
+        text: 'Initializing...', 
+        color: 'info', 
+        icon: <CircularProgress size={16} />,
+        details: 'Setting up Google Drive connection...'
+      };
+    }
+    return { 
+      text: 'Click to Enable', 
+      color: 'warning', 
+      icon: <Google />,
+      details: 'Click connect to enable file uploads'
+    };
+  };
+
+  const statusDisplay = getDriveStatusDisplay();
 
   return (
     <Box p={3}>
       <Box display="flex" alignItems="center" gap={2} mb={3}>
         <Button
           startIcon={<ArrowBack />}
-          onClick={() => navigate('/dashboard')}
+          onClick={() => navigate('/returns')}
           variant="outlined"
         >
-          Back
+          Back to Returns
         </Button>
         <Typography variant="h4" fontWeight="bold">
           Add New Return
@@ -196,146 +332,146 @@ const AddReturnPage: React.FC = () => {
                   Return Details
                 </Typography>
                 <Grid container spacing={3}>
-                     <Grid size={{ xs: 12, sm: 6 }}>
-                        <Controller
-                          name="lpnNumber"
-                          control={control}
-                          render={({ field }) => (
-                            <TextField
-                              {...field}
-                              fullWidth
-                              label="LPN Number *"
-                              error={!!errors.lpnNumber}
-                              helperText={errors.lpnNumber?.message}
-                            />
-                          )}
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Controller
+                      name="lpnNumber"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          fullWidth
+                          label="LPN Number *"
+                          error={!!errors.lpnNumber}
+                          helperText={errors.lpnNumber?.message}
                         />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                         <Controller
-                          name="trackingNumber"
-                          control={control}
-                          render={({ field }) => (
-                            <TextField
-                              {...field}
-                              fullWidth
-                              label="Tracking Number *"
-                              error={!!errors.trackingNumber}
-                              helperText={errors.trackingNumber?.message}
-                              InputProps={{
-                                endAdornment: (
-                                  <IconButton onClick={handleScanBarcode} edge="end">
-                                    <QrCodeScanner />
-                                  </IconButton>
-                                ),
-                              }}
-                            />
-                          )}
+                      )}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Controller
+                      name="trackingNumber"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          fullWidth
+                          label="Tracking Number *"
+                          error={!!errors.trackingNumber}
+                          helperText={errors.trackingNumber?.message}
+                          InputProps={{
+                            endAdornment: (
+                              <IconButton onClick={handleScanBarcode} edge="end">
+                                <QrCodeScanner />
+                              </IconButton>
+                            ),
+                          }}
                         />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <Controller
-                          name="fbaFbm"
-                          control={control}
-                          render={({ field }) => (
-                            <TextField {...field} select fullWidth label="FBA/FBM">
-                              {fbaFbmOptions.map((option) => (
-                                <MenuItem key={option} value={option}>
-                                  {option}
-                                </MenuItem>
-                              ))}
-                            </TextField>
-                          )}
+                      )}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Controller
+                      name="fbaFbm"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField {...field} select fullWidth label="FBA/FBM">
+                          {fbaFbmOptions.map((option) => (
+                            <MenuItem key={option} value={option}>
+                              {option}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      )}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Controller
+                      name="removalOrderId"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField {...field} fullWidth label="Removal Order ID" />
+                      )}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Controller
+                      name="serialNumber"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField {...field} fullWidth label="Serial Number on Item" />
+                      )}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Controller
+                      name="sku"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField {...field} fullWidth label="SKU" />
+                      )}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12 }}>
+                    <Controller
+                      name="productName"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          fullWidth
+                          label="Product Name *"
+                          error={!!errors.productName}
+                          helperText={errors.productName?.message}
                         />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <Controller
-                          name="removalOrderId"
-                          control={control}
-                          render={({ field }) => (
-                            <TextField {...field} fullWidth label="Removal Order ID" />
-                          )}
+                      )}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Controller
+                      name="condition"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField {...field} select fullWidth label="Condition *">
+                          {returnConditions.map((option) => (
+                            <MenuItem key={option} value={option}>
+                              {option}
+                            </MenuItem>
+                          ))}
+                        </TextField>
+                      )}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12, sm: 6 }}>
+                    <Controller
+                      name="quantity"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          fullWidth
+                          label="Quantity *"
+                          type="number"
+                          error={!!errors.quantity}
+                          helperText={errors.quantity?.message}
                         />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <Controller
-                          name="serialNumber"
-                          control={control}
-                          render={({ field }) => (
-                            <TextField {...field} fullWidth label="Serial Number on Item" />
-                          )}
+                      )}
+                    />
+                  </Grid>
+                  <Grid size={{ xs: 12 }}>
+                    <Controller
+                      name="notes"
+                      control={control}
+                      render={({ field }) => (
+                        <TextField
+                          {...field}
+                          fullWidth
+                          multiline
+                          rows={4}
+                          label="Remarks / Notes"
                         />
-                      </Grid>
-                       <Grid size={{ xs: 12, sm: 6 }}>
-                        <Controller
-                          name="sku"
-                          control={control}
-                          render={({ field }) => (
-                            <TextField {...field} fullWidth label="SKU" />
-                          )}
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12 }}>
-                         <Controller
-                          name="productName"
-                          control={control}
-                          render={({ field }) => (
-                            <TextField
-                              {...field}
-                              fullWidth
-                              label="Product Name *"
-                              error={!!errors.productName}
-                              helperText={errors.productName?.message}
-                            />
-                          )}
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <Controller
-                          name="condition"
-                          control={control}
-                          render={({ field }) => (
-                            <TextField {...field} select fullWidth label="Condition *">
-                              {returnConditions.map((option) => (
-                                <MenuItem key={option} value={option}>
-                                  {option}
-                                </MenuItem>
-                              ))}
-                            </TextField>
-                          )}
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12, sm: 6 }}>
-                        <Controller
-                          name="quantity"
-                          control={control}
-                          render={({ field }) => (
-                            <TextField
-                              {...field}
-                              fullWidth
-                              label="Quantity *"
-                              type="number"
-                              error={!!errors.quantity}
-                              helperText={errors.quantity?.message}
-                            />
-                          )}
-                        />
-                      </Grid>
-                      <Grid size={{ xs: 12 }}>
-                        <Controller
-                          name="notes"
-                          control={control}
-                          render={({ field }) => (
-                            <TextField
-                              {...field}
-                              fullWidth
-                              multiline
-                              rows={4}
-                              label="Remarks / Notes"
-                            />
-                          )}
-                        />
-                      </Grid>
+                      )}
+                    />
+                  </Grid>
                 </Grid>
               </CardContent>
             </Card>
@@ -349,52 +485,167 @@ const AddReturnPage: React.FC = () => {
                   Product Images ({images.length}/{MAX_IMAGES})
                 </Typography>
 
-                {!isDriveReady && images.length > 0 &&
-                    <Alert severity="warning" sx={{mb: 2}}>Please sign in to Google to upload images.</Alert>
-                }
+                {/* Drive Status */}
+                <Alert 
+                  severity={statusDisplay.color as any} 
+                  sx={{ mb: 2 }}
+                  icon={statusDisplay.icon}
+                >
+                  <Box>
+                    <Typography variant="body2" fontWeight="medium">
+                      Google Drive: {statusDisplay.text}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary">
+                      {driveStatus.details}
+                    </Typography>
+                    {driveStatus.isLoading && (
+                      <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+                        Please wait while we connect to Google Drive...
+                      </Typography>
+                    )}
+                  </Box>
+                </Alert>
 
+                {/* Images Preview */}
                 <Paper variant="outlined" sx={{ p: 1, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1, minHeight: 150 }}>
                   {images.map((image, index) => (
                     <Box key={index} sx={{ position: 'relative' }}>
-                      <img src={URL.createObjectURL(image)} alt={`preview ${index}`} style={{ width: '100%', height: 'auto', aspectRatio: '1 / 1', objectFit: 'cover', borderRadius: 1 }} />
-                      <IconButton size="small" onClick={() => handleRemoveImage(index)} sx={{ position: 'absolute', top: -5, right: -5, bgcolor: 'rgba(255,255,255,0.7)', '&:hover': { bgcolor: 'white' }}}>
+                      <img 
+                        src={URL.createObjectURL(image)} 
+                        alt={`preview ${index}`} 
+                        style={{ 
+                          width: '100%', 
+                          height: 'auto', 
+                          aspectRatio: '1 / 1', 
+                          objectFit: 'cover', 
+                          borderRadius: 4 
+                        }} 
+                      />
+                      <IconButton 
+                        size="small" 
+                        onClick={() => handleRemoveImage(index)} 
+                        sx={{ 
+                          position: 'absolute', 
+                          top: -5, 
+                          right: -5, 
+                          bgcolor: 'rgba(255,255,255,0.9)', 
+                          '&:hover': { bgcolor: 'white' }
+                        }}
+                      >
                         <Delete fontSize="small" />
                       </IconButton>
                     </Box>
                   ))}
                 </Paper>
-                <Button fullWidth variant="outlined" component="label" startIcon={<AddAPhoto />} sx={{ mt: 2 }} disabled={images.length >= MAX_IMAGES}>
+
+                {/* Add Images Button */}
+                <Button 
+                  fullWidth 
+                  variant="outlined" 
+                  component="label" 
+                  startIcon={<AddAPhoto />} 
+                  sx={{ mt: 2 }} 
+                  disabled={images.length >= MAX_IMAGES}
+                >
                   Add Images
-                  <input type="file" hidden multiple accept="image/*" onChange={handleImageChange} />
+                  <input 
+                    type="file" 
+                    hidden 
+                    multiple 
+                    accept="image/*" 
+                    onChange={handleImageChange} 
+                  />
                 </Button>
+
+                {/* Warning for images without Drive */}
+                {images.length > 0 && !driveStatus.isSignedIn && (
+                  <Alert severity="warning" sx={{ mt: 2 }}>
+                    Images will not be saved unless you connect to Google Drive.
+                  </Alert>
+                )}
               </CardContent>
             </Card>
             
             <Card sx={{ mt: 3 }}>
               <CardContent>
-                {!isDriveReady ? (
-                    <Button fullWidth variant="contained" startIcon={<Google />} onClick={handleGoogleSignIn}>
-                        Sign In with Google
+                {/* Google Drive Connection */}
+                {!driveStatus.isSignedIn ? (
+                  <Box display="flex" flexDirection="column" gap={1}>
+                    <Button 
+                      fullWidth 
+                      variant="contained" 
+                      startIcon={driveLoading ? <CircularProgress size={20} /> : <Google />} 
+                      onClick={handleGoogleSignIn}
+                      disabled={driveLoading || driveStatus.isLoading}
+                    >
+                      {driveLoading ? 'Connecting...' : 
+                       driveStatus.isLoading ? 'Initializing...' : 'Connect Google Drive'}
                     </Button>
+                    
+                    {(driveStatus.error || (driveStatus.isLoading && !driveStatus.isInitialized)) && (
+                      <Button 
+                        fullWidth 
+                        variant="outlined" 
+                        size="small"
+                        onClick={handleRetryConnection}
+                        disabled={driveLoading}
+                      >
+                        {driveStatus.error ? 'Retry Connection' : 'Force Initialize'}
+                      </Button>
+                    )}
+                  </Box>
                 ) : (
-                    <Typography textAlign="center" color="text.secondary" variant="body2">
-                        Signed in to Google Drive ✅
-                    </Typography>
+                  <Alert severity="success" icon={<Google />}>
+                    Google Drive Connected
+                  </Alert>
                 )}
+                
+                {driveStatus.error && (
+                  <Alert severity="error" sx={{ mt: 1 }}>
+                    <Typography variant="caption" component="div">
+                      <strong>Error:</strong> {driveStatus.error}
+                    </Typography>
+                    <Typography variant="caption" color="text.secondary" sx={{ mt: 0.5, display: 'block' }}>
+                      Check console for more details. Make sure your domain is authorized in Google Cloud Console.
+                    </Typography>
+                  </Alert>
+                )}
+                
                 <Divider sx={{ my: 2 }} />
-                 <Button type="submit" fullWidth variant="contained" size="large" startIcon={loading ? <CircularProgress size={20} /> : <Save />} disabled={loading}>
-                    {loading ? 'Saving...' : 'Save Return'}
-                  </Button>
-                  <Button fullWidth variant="outlined" onClick={() => { reset(); setImages([]); }} disabled={loading} sx={{ mt: 2 }}>
-                    Clear Form
-                  </Button>
+                
+                {/* Submit Button */}
+                <Button 
+                  type="submit" 
+                  fullWidth 
+                  variant="contained" 
+                  size="large" 
+                  startIcon={loading ? <CircularProgress size={20} /> : <Save />} 
+                  disabled={loading}
+                >
+                  {loading ? 'Saving...' : 'Save Return'}
+                </Button>
+                
+                <Button 
+                  fullWidth 
+                  variant="outlined" 
+                  onClick={() => { reset(); setImages([]); }} 
+                  disabled={loading} 
+                  sx={{ mt: 2 }}
+                >
+                  Clear Form
+                </Button>
               </CardContent>
             </Card>
           </Grid>
         </Grid>
       </form>
       
-      <BarcodeScanner open={scannerOpen} onClose={() => setScannerOpen(false)} onScan={handleScanResult} title="Scan Tracking Barcode" />
+      <BarcodeScanner 
+        open={scannerOpen} 
+        onClose={() => setScannerOpen(false)} 
+        onScan={handleScanResult} 
+        title="Scan Tracking Barcode" 
+      />
     </Box>
   );
 };

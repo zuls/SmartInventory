@@ -1,4 +1,4 @@
-// src/stores/authStore.ts
+// src/stores/authStore.ts - Make setters more stable
 import { create } from 'zustand';
 import { User as FirebaseUser } from 'firebase/auth';
 

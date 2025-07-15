@@ -3,8 +3,37 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vite + React + TS</title>
+    <meta http-equiv="Content-Security-Policy" content="
+      default-src 'self';
+      script-src 'self' 'unsafe-inline' 'unsafe-eval' 
+        https://apis.google.com 
+        https://www.gstatic.com 
+        https://*.googleusercontent.com
+        https://cdn.scite.ai;
+      style-src 'self' 'unsafe-inline' 
+        https://fonts.googleapis.com
+        https://cdn.scite.ai;
+      font-src 'self' 
+        https://fonts.gstatic.com
+        https://cdn.scite.ai
+        moz-extension:;
+      connect-src 'self' 
+        https://apis.google.com 
+        https://www.googleapis.com 
+        https://accounts.google.com
+        https://securetoken.googleapis.com
+        https://identitytoolkit.googleapis.com
+        https://*.firebaseio.com
+        https://*.cloudfunctions.net
+        https://firestore.googleapis.com
+        https://content.googleapis.com;
+      frame-src 'self' 
+        https://accounts.google.com
+        https://content.googleapis.com;
+      img-src 'self' data: blob: https:;
+    ">
+
+    <title>Warehouse Management</title>
   </head>
   <body>
     <div id="root"></div>

@@ -1,5 +1,4 @@
-// Option 1: Update src/hooks/useAuth.ts to include logout function
-
+// src/hooks/useAuth.ts - Fixed to prevent continuous logging
 import { useEffect } from 'react';
 import { onAuthStateChanged, signOut } from 'firebase/auth';
 import { auth } from '../lib/firebase';
@@ -26,7 +25,7 @@ export const useAuth = () => {
       console.log('useAuth: Cleaning up auth listener');
       unsubscribe();
     };
-  }, []);
+  }, []); // Remove the dependency array items that were causing re-renders
 
   // Add logout function
   const logout = async () => {
@@ -39,19 +38,16 @@ export const useAuth = () => {
     }
   };
 
+  // Only log the state once when it changes, not on every render
   const authState = {
     user,
     loading,
     isAuthenticated: !!user,
-    logout, // ← Add logout function here
+    logout,
   };
 
-  console.log('useAuth: Current state -', authState);
+  // Remove the continuous logging
+  // console.log('useAuth: Current state -', authState);
+  
   return authState;
 };
-
-// ===================================================
-
-// Option 2: Alternative - Update Layout.tsx to use the AuthContext instead
-
-// In Layout.tsx, replace the useAuth import:
