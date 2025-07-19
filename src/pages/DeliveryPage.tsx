@@ -1,4 +1,4 @@
-// src/pages/DeliveryPage.tsx - Updated with Serial Number Assignment Support
+// src/pages/DeliveryPage.tsx - Simplified Delivery Process
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import {
@@ -16,7 +16,6 @@ import {
   StepLabel,
   StepContent,
   Paper,
-  Divider,
   Chip,
   IconButton,
   Table,
@@ -31,42 +30,26 @@ import {
   DialogActions,
   MenuItem,
   Avatar,
-  Badge,
   Tooltip,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
   List,
   ListItem,
   ListItemText,
-  ListItemAvatar,
   ListItemButton,
-  FormControlLabel,
-  Switch,
+  ListItemAvatar,
 } from '@mui/material';
 import {
   LocalShipping,
   ArrowBack,
-  QrCodeScanner,
   Save,
   CheckCircle,
   Warning,
   Info,
   Search,
-  Add,
-  Delete,
-  Edit,
   Assignment,
   Inventory,
   Person,
-  LocationOn,
-  Schedule,
-  ExpandMore,
-  FlashOn,
-  FlashOff,
   Speed,
-  NewReleases,
-  Visibility,
+  QrCodeScanner,
   ErrorOutline,
 } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
@@ -98,17 +81,14 @@ const carriers = [
 ];
 
 const schema = yup.object().shape({
-  inventoryBatchId: yup.string().required('Inventory batch selection is required'),
+  inventoryBatchId: yup.string().required('Product selection is required'),
   selectedItemId: yup.string().optional(),
   productSerialNumber: yup.string().optional(),
   shippingLabelData: yup.object().shape({
     labelNumber: yup.string().required('Label number is required'),
     carrier: yup.string().required('Carrier is required'),
-    trackingNumber: yup.string().optional(),
     destination: yup.string().required('Destination is required'),
-    weight: yup.string().optional(),
-    dimensions: yup.string().optional(),
-    serviceType: yup.string().optional(),
+    trackingNumber: yup.string().optional(),
   }).required(),
   customerInfo: yup.object().shape({
     name: yup.string().optional(),
@@ -116,7 +96,6 @@ const schema = yup.object().shape({
     email: yup.string().email('Invalid email format').optional(),
     phone: yup.string().optional(),
   }).required(),
-  deliveryTracking: yup.string().optional(),
 }) as ObjectSchema<DeliveryForm>;
 
 const DeliveryPage: React.FC = () => {
@@ -136,14 +115,13 @@ const DeliveryPage: React.FC = () => {
   const [deliveryResult, setDeliveryResult] = useState<DeliveryWithSerialNumber | null>(null);
   
   // Inventory states
-  const [availableInventory, setAvailableInventory] = useState<any[]>([]);
-  const [selectedBatch, setSelectedBatch] = useState<InventoryBatch | null>(null);
+  const [availableProducts, setAvailableProducts] = useState<any[]>([]);
+  const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [availableItems, setAvailableItems] = useState<SerialNumberItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<SerialNumberItem | null>(null);
   const [inventoryLoading, setInventoryLoading] = useState(false);
   
   // Serial number states
-  const [serialNumberMode, setSerialNumberMode] = useState<'assign_now' | 'use_existing' | 'select_item'>('select_item');
   const [newSerialNumber, setNewSerialNumber] = useState('');
   const [serialNumberValidation, setSerialNumberValidation] = useState<{ valid: boolean; error?: string } | null>(null);
   const [serialNumberLoading, setSerialNumberLoading] = useState(false);
@@ -153,14 +131,11 @@ const DeliveryPage: React.FC = () => {
   const [scanType, setScanType] = useState<'label' | 'tracking' | 'serial'>('label');
   
   // Dialog states
-  const [batchSelectionOpen, setBatchSelectionOpen] = useState(false);
+  const [productSelectionOpen, setProductSelectionOpen] = useState(false);
   const [itemSelectionOpen, setItemSelectionOpen] = useState(false);
-  const [showItemDetails, setShowItemDetails] = useState(false);
-  const [showAssignmentDialog, setShowAssignmentDialog] = useState(false);
   
   // Search states
   const [searchSKU, setSearchSKU] = useState(preSelectedSKU || '');
-  const [quickDeliveryMode, setQuickDeliveryMode] = useState(false);
 
   const {
     control,
@@ -180,9 +155,6 @@ const DeliveryPage: React.FC = () => {
         carrier: 'FedEx' as Carrier,
         trackingNumber: '',
         destination: '',
-        weight: '',
-        dimensions: '',
-        serviceType: 'Standard',
       },
       customerInfo: {
         name: '',
@@ -190,66 +162,23 @@ const DeliveryPage: React.FC = () => {
         email: '',
         phone: '',
       },
-      deliveryTracking: '',
     },
   });
 
-  const watchedBatchId = watch('inventoryBatchId');
+  const watchedProductId = watch('inventoryBatchId');
   const watchedItemId = watch('selectedItemId');
 
-  // Load available inventory
+  // Load available products
   useEffect(() => {
-    const loadAvailableInventory = async () => {
-      try {
-        setInventoryLoading(true);
-        if (searchSKU) {
-          const inventory = await inventoryService.getAvailableInventoryForSKU(searchSKU);
-          setAvailableInventory(inventory);
-        } else {
-          const summary = await inventoryService.getInventorySummaryBySKU();
-          setAvailableInventory(summary.filter(item => item.totalAvailable > 0));
-        }
-      } catch (err) {
-        console.error('Error loading inventory:', err);
-        setError('Failed to load available inventory');
-      } finally {
-        setInventoryLoading(false);
-      }
-    };
-
-    loadAvailableInventory();
+    loadAvailableProducts();
   }, [searchSKU]);
 
-  // Load available items when batch changes
+  // Load items when product changes
   useEffect(() => {
-    if (watchedBatchId) {
-      const loadBatchItems = async () => {
-        try {
-          setInventoryLoading(true);
-          const [batch, items] = await Promise.all([
-            inventoryService.getInventoryBatchById(watchedBatchId),
-            inventoryService.getAvailableItemsForDelivery(selectedBatch?.sku || ''),
-          ]);
-          
-          setSelectedBatch(batch);
-          const batchItems = items.filter(item => item.batchId === watchedBatchId);
-          setAvailableItems(batchItems);
-          
-          // Auto-select first item if only one available
-          if (batchItems.length === 1) {
-            setSelectedItem(batchItems[0]);
-            setValue('selectedItemId', batchItems[0].id);
-          }
-        } catch (err) {
-          console.error('Error loading batch items:', err);
-          setError('Failed to load batch items');
-        } finally {
-          setInventoryLoading(false);
-        }
-      };
-      loadBatchItems();
+    if (watchedProductId && selectedProduct) {
+      loadProductItems();
     }
-  }, [watchedBatchId, selectedBatch?.sku]);
+  }, [watchedProductId, selectedProduct]);
 
   // Update selected item when item ID changes
   useEffect(() => {
@@ -257,18 +186,81 @@ const DeliveryPage: React.FC = () => {
       const item = availableItems.find(i => i.id === watchedItemId);
       setSelectedItem(item || null);
       
-      // Determine serial number mode based on item
-      if (item) {
-        if (item.serialNumber) {
-          setSerialNumberMode('use_existing');
-          setValue('productSerialNumber', item.serialNumber);
-        } else {
-          setSerialNumberMode('assign_now');
-          setValue('productSerialNumber', '');
-        }
+      if (item?.serialNumber) {
+        setValue('productSerialNumber', item.serialNumber);
+      } else {
+        setValue('productSerialNumber', '');
+        setNewSerialNumber('');
       }
     }
   }, [watchedItemId, availableItems]);
+
+  const loadAvailableProducts = async () => {
+    setInventoryLoading(true);
+    try {
+      let products;
+      if (searchSKU) {
+        products = await inventoryService.getAvailableInventoryForSKU(searchSKU);
+      } else {
+        const summary = await inventoryService.getInventorySummaryBySKU();
+        products = summary.filter(item => item.totalAvailable > 0);
+      }
+      setAvailableProducts(products);
+      
+      // Auto-select if pre-selected SKU and only one result
+      if (preSelectedSKU && products.length === 1) {
+        handleProductSelection(products[0]);
+      }
+    } catch (err) {
+      console.error('Error loading products:', err);
+      setError('Failed to load available products');
+    } finally {
+      setInventoryLoading(false);
+    }
+  };
+
+  const loadProductItems = async () => {
+    if (!selectedProduct) return;
+    
+    setInventoryLoading(true);
+    try {
+      const items = await inventoryService.getAvailableItemsForDelivery(selectedProduct.sku);
+      setAvailableItems(items);
+      
+      // Auto-select first item if only one available
+      if (items.length === 1) {
+        setSelectedItem(items[0]);
+        setValue('selectedItemId', items[0].id);
+      }
+    } catch (err) {
+      console.error('Error loading items:', err);
+      setError('Failed to load available items');
+    } finally {
+      setInventoryLoading(false);
+    }
+  };
+
+  // Handle product selection
+  const handleProductSelection = (product: any) => {
+    setSelectedProduct(product);
+    setValue('inventoryBatchId', product.batches?.[0]?.id || product.id);
+    setProductSelectionOpen(false);
+    setActiveStep(1);
+  };
+
+  // Handle item selection
+  const handleItemSelection = (item: SerialNumberItem) => {
+    setSelectedItem(item);
+    setValue('selectedItemId', item.id);
+    setItemSelectionOpen(false);
+    
+    if (item.serialNumber) {
+      setValue('productSerialNumber', item.serialNumber);
+      setActiveStep(2);
+    } else {
+      setActiveStep(2); // Go to serial number assignment
+    }
+  };
 
   // Validate serial number
   const validateSerialNumber = async (serialNumber: string) => {
@@ -301,34 +293,24 @@ const DeliveryPage: React.FC = () => {
 
   // Handle serial number changes
   useEffect(() => {
-    if (serialNumberMode === 'assign_now' && newSerialNumber) {
+    if (newSerialNumber) {
       const timeoutId = setTimeout(() => {
         validateSerialNumber(newSerialNumber);
       }, 500);
       return () => clearTimeout(timeoutId);
     }
-  }, [newSerialNumber, serialNumberMode]);
+  }, [newSerialNumber]);
 
   // Form submission
   const onSubmit = async (data: DeliveryForm) => {
-    if (!user) {
-      setError('User not authenticated');
+    if (!user || !selectedItem) {
+      setError('Missing required information');
       return;
     }
 
-    if (!selectedItem) {
-      setError('Please select an item for delivery');
-      return;
-    }
-
-    // Validate serial number requirement
-    if (serialNumberMode === 'assign_now' && !newSerialNumber) {
+    // Check if serial number is required
+    if (!selectedItem.serialNumber && !newSerialNumber) {
       setError('Please assign a serial number before delivery');
-      return;
-    }
-
-    if (serialNumberMode === 'assign_now' && serialNumberValidation && !serialNumberValidation.valid) {
-      setError('Please fix serial number validation errors');
       return;
     }
 
@@ -337,33 +319,22 @@ const DeliveryPage: React.FC = () => {
     setSuccess(false);
 
     try {
-      console.log('🚚 Processing delivery:', {
-        itemId: selectedItem.id,
-        serialNumber: serialNumberMode === 'assign_now' ? newSerialNumber : selectedItem.serialNumber,
-        customer: data.customerInfo.name,
-        destination: data.shippingLabelData.destination,
-      });
-
-      // Prepare delivery data
       const deliveryData = {
         ...data,
         selectedItemId: selectedItem.id,
-        productSerialNumber: serialNumberMode === 'assign_now' ? newSerialNumber : selectedItem.serialNumber,
+        productSerialNumber: selectedItem.serialNumber || newSerialNumber,
       };
 
-      // Process delivery
       const result = await inventoryService.deliverItemWithSerialNumber(deliveryData, user.uid);
-      
-      console.log('✅ Delivery processed successfully:', result);
       
       setDeliveryResult(result);
       setSuccess(true);
       setActiveStep(4); // Move to success step
       
-      // Reset form after success
+      // Reset form after delay
       setTimeout(() => {
         reset();
-        setSelectedBatch(null);
+        setSelectedProduct(null);
         setSelectedItem(null);
         setAvailableItems([]);
         setNewSerialNumber('');
@@ -403,27 +374,11 @@ const DeliveryPage: React.FC = () => {
     setScannerOpen(false);
   };
 
-  // Handle batch selection
-  const handleBatchSelection = (batch: InventoryBatch) => {
-    setValue('inventoryBatchId', batch.id);
-    setSelectedBatch(batch);
-    setBatchSelectionOpen(false);
-    setActiveStep(1);
-  };
-
-  // Handle item selection
-  const handleItemSelection = (item: SerialNumberItem) => {
-    setValue('selectedItemId', item.id);
-    setSelectedItem(item);
-    setItemSelectionOpen(false);
-    setActiveStep(2);
-  };
-
   // Auto-assign serial number
   const autoAssignSerialNumber = () => {
-    if (selectedBatch) {
+    if (selectedProduct) {
       const timestamp = Date.now().toString().slice(-6);
-      const sku = selectedBatch.sku.replace(/[^A-Z0-9]/g, '').substring(0, 4);
+      const sku = selectedProduct.sku?.replace(/[^A-Z0-9]/g, '').substring(0, 4) || 'ITEM';
       const autoSerial = `${sku}${timestamp}`;
       setNewSerialNumber(autoSerial);
       setValue('productSerialNumber', autoSerial);
@@ -434,23 +389,23 @@ const DeliveryPage: React.FC = () => {
   const steps = [
     {
       label: 'Select Product',
-      description: 'Choose product batch for delivery',
+      description: 'Choose product for delivery',
     },
     {
       label: 'Select Item',
-      description: 'Choose specific item to deliver',
+      description: 'Choose specific item',
     },
     {
-      label: 'Assign Serial Number',
+      label: 'Serial Number',
       description: 'Assign or verify serial number',
     },
     {
       label: 'Shipping Details',
-      description: 'Enter shipping information',
+      description: 'Enter delivery information',
     },
     {
-      label: 'Complete Delivery',
-      description: 'Review and process delivery',
+      label: 'Complete',
+      description: 'Process delivery',
     },
   ];
 
@@ -465,7 +420,7 @@ const DeliveryPage: React.FC = () => {
             </Typography>
             
             <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid size={{ xs: 12, md: 8 }}>
                 <TextField
                   fullWidth
                   label="Search by SKU"
@@ -477,22 +432,22 @@ const DeliveryPage: React.FC = () => {
                   }}
                 />
               </Grid>
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid size={{ xs: 12, md: 4 }}>
                 <Button
                   variant="outlined"
-                  onClick={() => setBatchSelectionOpen(true)}
-                  disabled={availableInventory.length === 0 || inventoryLoading}
-                  startIcon={inventoryLoading ? <CircularProgress size={20} /> : <Add />}
+                  onClick={() => setProductSelectionOpen(true)}
+                  disabled={availableProducts.length === 0 || inventoryLoading}
+                  startIcon={inventoryLoading ? <CircularProgress size={20} /> : <Inventory />}
                   fullWidth
                   sx={{ height: '56px' }}
                 >
-                  {inventoryLoading ? 'Loading...' : 'Select from Available Products'}
+                  {inventoryLoading ? 'Loading...' : 'Browse Products'}
                 </Button>
               </Grid>
             </Grid>
 
-            {/* Selected Batch Display */}
-            {selectedBatch && (
+            {/* Selected Product Display */}
+            {selectedProduct && (
               <Card variant="outlined" sx={{ mb: 2 }}>
                 <CardContent>
                   <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
@@ -501,16 +456,16 @@ const DeliveryPage: React.FC = () => {
                   <Grid container spacing={2}>
                     <Grid size={4}>
                       <Typography variant="body2" color="text.secondary">Product:</Typography>
-                      <Typography variant="body1">{selectedBatch.productName}</Typography>
+                      <Typography variant="body1">{selectedProduct.productName}</Typography>
                     </Grid>
                     <Grid size={4}>
                       <Typography variant="body2" color="text.secondary">SKU:</Typography>
-                      <Typography variant="body1" fontFamily="monospace">{selectedBatch.sku}</Typography>
+                      <Typography variant="body1" fontFamily="monospace">{selectedProduct.sku}</Typography>
                     </Grid>
                     <Grid size={4}>
                       <Typography variant="body2" color="text.secondary">Available:</Typography>
                       <Typography variant="body1" color="success.main" fontWeight="bold">
-                        {selectedBatch.availableQuantity}
+                        {selectedProduct.totalAvailable || selectedProduct.availableQuantity}
                       </Typography>
                     </Grid>
                   </Grid>
@@ -518,7 +473,7 @@ const DeliveryPage: React.FC = () => {
               </Card>
             )}
 
-            <Box display="flex" justifyContent="space-between" gap={2}>
+            <Box display="flex" justifyContent="space-between">
               <Button
                 variant="outlined"
                 onClick={() => navigate('/inventory')}
@@ -529,7 +484,7 @@ const DeliveryPage: React.FC = () => {
               <Button
                 variant="contained"
                 onClick={() => setActiveStep(1)}
-                disabled={!selectedBatch}
+                disabled={!selectedProduct}
                 startIcon={<Inventory />}
               >
                 Continue to Item Selection
@@ -547,7 +502,7 @@ const DeliveryPage: React.FC = () => {
             
             <Alert severity="info" sx={{ mb: 3 }}>
               <Typography variant="body2">
-                Choose a specific item from the selected batch. Items with serial numbers are ready for immediate delivery.
+                Choose a specific item from the selected product. Items with serial numbers are ready for delivery.
               </Typography>
             </Alert>
 
@@ -561,7 +516,7 @@ const DeliveryPage: React.FC = () => {
                 {availableItems.length === 0 ? (
                   <Alert severity="warning">
                     <Typography variant="body2">
-                      No items available for delivery in this batch.
+                      No items available for delivery.
                     </Typography>
                   </Alert>
                 ) : (
@@ -615,16 +570,16 @@ const DeliveryPage: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Box display="flex" justifyContent="space-between" gap={2}>
+            <Box display="flex" justifyContent="space-between">
               <Button
-                variant="outlined"
                 onClick={() => setActiveStep(0)}
+                variant="outlined"
               >
                 Back
               </Button>
               <Button
-                variant="contained"
                 onClick={() => setActiveStep(2)}
+                variant="contained"
                 disabled={!selectedItem}
                 startIcon={<Assignment />}
               >
@@ -638,7 +593,7 @@ const DeliveryPage: React.FC = () => {
         return (
           <Box>
             <Typography variant="h6" gutterBottom>
-              Serial Number Assignment
+              Serial Number Management
             </Typography>
             
             {selectedItem && (
@@ -650,7 +605,7 @@ const DeliveryPage: React.FC = () => {
                   <Grid container spacing={2}>
                     <Grid size={6}>
                       <Typography variant="body2" color="text.secondary">Product:</Typography>
-                      <Typography variant="body1">{selectedBatch?.productName}</Typography>
+                      <Typography variant="body1">{selectedProduct?.productName}</Typography>
                     </Grid>
                     <Grid size={6}>
                       <Typography variant="body2" color="text.secondary">Current Serial:</Typography>
@@ -663,22 +618,22 @@ const DeliveryPage: React.FC = () => {
               </Card>
             )}
 
-            {/* Serial Number Mode Selection */}
+            {/* Serial Number Assignment */}
             <Card variant="outlined" sx={{ mb: 3 }}>
               <CardContent>
                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                  Serial Number Options
+                  Serial Number Assignment
                 </Typography>
                 
                 {selectedItem?.serialNumber ? (
                   <Box>
                     <Alert severity="success" sx={{ mb: 2 }}>
                       <Typography variant="body2">
-                        <strong>Item already has serial number:</strong> {selectedItem.serialNumber}
+                        <strong>Ready for delivery:</strong> {selectedItem.serialNumber}
                       </Typography>
                     </Alert>
                     <Typography variant="body2">
-                      This item is ready for delivery with its existing serial number.
+                      This item already has a serial number and is ready for delivery.
                     </Typography>
                   </Box>
                 ) : (
@@ -690,7 +645,7 @@ const DeliveryPage: React.FC = () => {
                     </Alert>
                     
                     <Grid container spacing={2}>
-                      <Grid size={{ xs: 12, md: 8 }}>
+                      <Grid size={{ xs: 12, md: 6 }}>
                         <TextField
                           fullWidth
                           label="Assign Serial Number *"
@@ -714,13 +669,13 @@ const DeliveryPage: React.FC = () => {
                           }}
                         />
                       </Grid>
-                      <Grid size={{ xs: 12, md: 4 }}>
+                      <Grid size={{ xs: 12, md: 3 }}>
                         <Button
                           variant="outlined"
                           onClick={autoAssignSerialNumber}
                           fullWidth
                           sx={{ height: '56px' }}
-                          startIcon={<FlashOn />}
+                          startIcon={<Speed />}
                         >
                           Auto-Generate
                         </Button>
@@ -731,20 +686,20 @@ const DeliveryPage: React.FC = () => {
               </CardContent>
             </Card>
 
-            <Box display="flex" justifyContent="space-between" gap={2}>
+            <Box display="flex" justifyContent="space-between">
               <Button
-                variant="outlined"
                 onClick={() => setActiveStep(1)}
+                variant="outlined"
               >
                 Back
               </Button>
               <Button
-                variant="contained"
                 onClick={() => setActiveStep(3)}
+                variant="contained"
                 disabled={!selectedItem?.serialNumber && !newSerialNumber}
                 startIcon={<LocalShipping />}
               >
-                Continue to Shipping Details
+                Continue to Shipping
               </Button>
             </Box>
           </Box>
@@ -844,38 +799,7 @@ const DeliveryPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Controller
-                  name="shippingLabelData.weight"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label="Weight"
-                      placeholder="2.5 lbs"
-                    />
-                  )}
-                />
-              </Grid>
-
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Controller
-                  name="shippingLabelData.dimensions"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label="Dimensions"
-                      placeholder="12x8x6 inches"
-                    />
-                  )}
-                />
-              </Grid>
-
               <Grid size={{ xs: 12 }}>
-                <Divider sx={{ my: 2 }} />
                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                   Customer Information (Optional)
                 </Typography>
@@ -929,21 +853,6 @@ const DeliveryPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Controller
-                  name="deliveryTracking"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      label="Internal Delivery Tracking"
-                      placeholder="Internal reference number"
-                    />
-                  )}
-                />
-              </Grid>
-
               <Grid size={{ xs: 12 }}>
                 <Controller
                   name="customerInfo.address"
@@ -964,14 +873,14 @@ const DeliveryPage: React.FC = () => {
 
             <Box display="flex" justifyContent="space-between" gap={2} mt={3}>
               <Button
-                variant="outlined"
                 onClick={() => setActiveStep(2)}
+                variant="outlined"
               >
                 Back
               </Button>
               <Button
-                variant="contained"
                 onClick={() => setActiveStep(4)}
+                variant="contained"
                 startIcon={<CheckCircle />}
               >
                 Review & Complete
@@ -995,36 +904,6 @@ const DeliveryPage: React.FC = () => {
                 </Typography>
                 <Grid container spacing={2}>
                   <Grid size={6}>
-                    <Typography variant="body2" color="text.secondary">Product:</Typography>
-                    <Typography variant="body1">{selectedBatch?.productName}</Typography>
-                  </Grid>
-                  <Grid size={6}>
-                    <Typography variant="body2" color="text.secondary">SKU:</Typography>
-                    <Typography variant="body1" fontFamily="monospace">{selectedBatch?.sku}</Typography>
-                  </Grid>
-                  <Grid size={6}>
-                    <Typography variant="body2" color="text.secondary">Serial Number:</Typography>
-                    <Typography variant="body1" fontFamily="monospace">
-                      {selectedItem?.serialNumber || newSerialNumber}
-                    </Typography>
-                  </Grid>
-                  <Grid size={6}>
-                    <Typography variant="body2" color="text.secondary">Label Number:</Typography>
-                    <Typography variant="body1">{watch('shippingLabelData.labelNumber')}</Typography>
-                  </Grid>
-                  <Grid size={6}>
-                    <Typography variant="body2" color="text.secondary">Carrier:</Typography>
-                    <Typography variant="body1">{watch('shippingLabelData.carrier')}</Typography>
-                  </Grid>
-                  <Grid size={6}>
-                    <Typography variant="body2" color="text.secondary">Destination:</Typography>
-                    <Typography variant="body1">{watch('shippingLabelData.destination')}</Typography>
-                  </Grid>
-                  <Grid size={6}>
-                    <Typography variant="body2" color="text.secondary">Customer:</Typography>
-                    <Typography variant="body1">{watch('customerInfo.name') || 'Not specified'}</Typography>
-                  </Grid>
-                  <Grid size={6}>
                     <Typography variant="body2" color="text.secondary">Tracking:</Typography>
                     <Typography variant="body1">{watch('shippingLabelData.trackingNumber') || 'Not provided'}</Typography>
                   </Grid>
@@ -1045,7 +924,7 @@ const DeliveryPage: React.FC = () => {
                       Item will be marked as delivered
                     </Typography>
                   </Box>
-                  {serialNumberMode === 'assign_now' && (
+                  {!selectedItem?.serialNumber && newSerialNumber && (
                     <Box display="flex" alignItems="center" gap={1}>
                       <CheckCircle color="success" fontSize="small" />
                       <Typography variant="body2">
@@ -1065,27 +944,21 @@ const DeliveryPage: React.FC = () => {
                       Delivery record will be created
                     </Typography>
                   </Box>
-                  <Box display="flex" alignItems="center" gap={1}>
-                    <CheckCircle color="success" fontSize="small" />
-                    <Typography variant="body2">
-                      Complete history will be tracked
-                    </Typography>
-                  </Box>
                 </Box>
               </CardContent>
             </Card>
 
-            <Box display="flex" justifyContent="space-between" gap={2}>
+            <Box display="flex" justifyContent="space-between">
               <Button
-                variant="outlined"
                 onClick={() => setActiveStep(3)}
+                variant="outlined"
                 disabled={loading}
               >
                 Back
               </Button>
               <Button
-                variant="contained"
                 onClick={handleSubmit(onSubmit)}
+                variant="contained"
                 disabled={loading}
                 startIcon={loading ? <CircularProgress size={20} /> : <LocalShipping />}
               >
@@ -1108,9 +981,9 @@ const DeliveryPage: React.FC = () => {
           Process Delivery
         </Typography>
         <Chip
-          label="Serial Number Required"
+          label="Simple Delivery"
           color="primary"
-          icon={<Assignment />}
+          icon={<LocalShipping />}
           variant="outlined"
         />
       </Box>
@@ -1132,7 +1005,7 @@ const DeliveryPage: React.FC = () => {
               <Button
                 color="inherit"
                 size="small"
-                onClick={() => navigate('/delivery')}
+                onClick={() => window.location.reload()}
               >
                 New Delivery
               </Button>
@@ -1183,22 +1056,22 @@ const DeliveryPage: React.FC = () => {
           <Card sx={{ mb: 3 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Delivery Guidelines
+                Delivery Process
               </Typography>
               <Box display="flex" flexDirection="column" gap={2}>
                 <Alert severity="info" icon={<Info />}>
                   <Typography variant="body2">
-                    <strong>Serial Numbers:</strong> All items must have serial numbers before delivery.
+                    <strong>Simple Process:</strong> Select product → Choose item → Assign serial number → Ship
                   </Typography>
                 </Alert>
                 <Alert severity="success" icon={<CheckCircle />}>
                   <Typography variant="body2">
-                    <strong>Auto-Assignment:</strong> System can auto-generate serial numbers if needed.
+                    <strong>Auto-Assignment:</strong> Serial numbers can be auto-generated if needed.
                   </Typography>
                 </Alert>
                 <Alert severity="warning" icon={<Warning />}>
                   <Typography variant="body2">
-                    <strong>Inventory Deduction:</strong> Completing delivery will reduce available inventory.
+                    <strong>Required:</strong> All items must have serial numbers before delivery.
                   </Typography>
                 </Alert>
               </Box>
@@ -1206,33 +1079,32 @@ const DeliveryPage: React.FC = () => {
           </Card>
 
           {/* Current Selection */}
-          {(selectedBatch || selectedItem) && (
+          {(selectedProduct || selectedItem) && (
             <Card sx={{ mb: 3 }}>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
                   Current Selection
                 </Typography>
                 
-                {selectedBatch && (
+                {selectedProduct && (
                   <Box mb={2}>
                     <Typography variant="body2" color="text.secondary">Product:</Typography>
                     <Typography variant="body1" fontWeight="bold">
-                      {selectedBatch.productName}
+                      {selectedProduct.productName}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">SKU:</Typography>
                     <Typography variant="body1" fontFamily="monospace">
-                      {selectedBatch.sku}
+                      {selectedProduct.sku}
                     </Typography>
                     <Typography variant="body2" color="text.secondary">Available:</Typography>
                     <Typography variant="body1" color="success.main" fontWeight="bold">
-                      {selectedBatch.availableQuantity}
+                      {selectedProduct.totalAvailable || selectedProduct.availableQuantity}
                     </Typography>
                   </Box>
                 )}
 
                 {selectedItem && (
                   <Box>
-                    <Divider sx={{ my: 2 }} />
                     <Typography variant="body2" color="text.secondary">Selected Item:</Typography>
                     <Box display="flex" alignItems="center" gap={1}>
                       <Typography variant="body1" fontWeight="bold">
@@ -1251,126 +1123,115 @@ const DeliveryPage: React.FC = () => {
                     )}
                   </Box>
                 )}
+              </CardContent>
+            </Card>
+          )}
+
+          {/* Quick Actions */}
+          <Card>
+            <CardContent>
+              <Typography variant="h6" gutterBottom>
+                Quick Actions
+              </Typography>
+              <Box display="flex" flexDirection="column" gap={1}>
+                <Button
+                  variant="outlined"
+                  startIcon={<Inventory />}
+                  onClick={() => navigate('/inventory')}
+                >
+                  View Inventory
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<Assignment />}
+                  onClick={() => navigate('/inventory')}
+                >
+                  Assign Serial Numbers
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<LocalShipping />}
+                  onClick={() => window.location.reload()}
+                >
+                  New Delivery
+                </Button>
               </Box>
             </CardContent>
           </Card>
-        )}
-
-        {/* Quick Actions */}
-        <Card>
-          <CardContent>
-            <Typography variant="h6" gutterBottom>
-              Quick Actions
-            </Typography>
-            <Box display="flex" flexDirection="column" gap={1}>
-              <Button
-                variant="outlined"
-                startIcon={<Inventory />}
-                onClick={() => navigate('/inventory')}
-              >
-                View Inventory
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<Assignment />}
-                onClick={() => navigate('/inventory')}
-              >
-                Assign Serial Numbers
-              </Button>
-              <Button
-                variant="outlined"
-                startIcon={<LocalShipping />}
-                onClick={() => window.location.reload()}
-              >
-                New Delivery
-              </Button>
-            </Box>
-          </CardContent>
-        </Card>
+        </Grid>
       </Grid>
-    </Grid>
 
-    {/* Inventory Selection Dialog */}
-    <Dialog open={batchSelectionOpen} maxWidth="md" fullWidth>
-      <DialogTitle>Select Product Batch</DialogTitle>
-      <DialogContent>
-        <Typography variant="body2" color="text.secondary" gutterBottom>
-          Choose a product batch to process for delivery
-        </Typography>
-        
-        <TableContainer sx={{ mt: 2 }}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>Product</TableCell>
-                <TableCell>SKU</TableCell>
-                <TableCell>Available</TableCell>
-                <TableCell>With Serial Numbers</TableCell>
-                <TableCell>Source</TableCell>
-                <TableCell>Action</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {availableInventory.map((item) => (
-                item.batches?.map((batch: InventoryBatch) => (
-                  <TableRow key={batch.id}>
-                    <TableCell>{batch.productName}</TableCell>
-                    <TableCell sx={{ fontFamily: 'monospace' }}>{batch.sku}</TableCell>
+      {/* Product Selection Dialog */}
+      <Dialog open={productSelectionOpen} onClose={() => setProductSelectionOpen(false)} maxWidth="md" fullWidth>
+        <DialogTitle>Select Product for Delivery</DialogTitle>
+        <DialogContent>
+          <Typography variant="body2" color="text.secondary" gutterBottom>
+            Choose a product that has available items for delivery
+          </Typography>
+          
+          <TableContainer sx={{ mt: 2 }}>
+            <Table>
+              <TableHead>
+                <TableRow>
+                  <TableCell>Product</TableCell>
+                  <TableCell>SKU</TableCell>
+                  <TableCell>Available</TableCell>
+                  <TableCell>With Serial Numbers</TableCell>
+                  <TableCell>Action</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {availableProducts.map((product) => (
+                  <TableRow key={product.sku || product.id}>
+                    <TableCell>{product.productName}</TableCell>
+                    <TableCell sx={{ fontFamily: 'monospace' }}>{product.sku}</TableCell>
                     <TableCell>
                       <Typography color="success.main" fontWeight="bold">
-                        {batch.availableQuantity}
+                        {product.totalAvailable || product.availableQuantity}
                       </Typography>
                     </TableCell>
                     <TableCell>
                       <Box display="flex" alignItems="center" gap={1}>
                         <Typography variant="body2">
-                          {batch.serialNumbersAssigned}
+                          {product.itemsWithSerialNumbers || 0}
                         </Typography>
                         <Chip
-                          label={`${batch.serialNumbersAssigned}/${batch.totalQuantity}`}
-                          color={batch.serialNumbersAssigned === batch.totalQuantity ? 'success' : 'warning'}
+                          label={product.itemsWithSerialNumbers > 0 ? 'Ready' : 'Needs Serial'}
+                          color={product.itemsWithSerialNumbers > 0 ? 'success' : 'warning'}
                           size="small"
                         />
                       </Box>
                     </TableCell>
                     <TableCell>
-                      <Chip
-                        label={batch.source === 'new_arrival' ? 'New' : 'Return'}
-                        color={batch.source === 'new_arrival' ? 'success' : 'secondary'}
-                        size="small"
-                      />
-                    </TableCell>
-                    <TableCell>
                       <Button
                         size="small"
                         variant="outlined"
-                        onClick={() => handleBatchSelection(batch)}
-                        disabled={batch.availableQuantity === 0}
+                        onClick={() => handleProductSelection(product)}
+                        disabled={(product.totalAvailable || product.availableQuantity) === 0}
                       >
                         Select
                       </Button>
                     </TableCell>
                   </TableRow>
-                ))
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      </DialogContent>
-      <DialogActions>
-        <Button onClick={() => setBatchSelectionOpen(false)}>Cancel</Button>
-      </DialogActions>
-    </Dialog>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setProductSelectionOpen(false)}>Cancel</Button>
+        </DialogActions>
+      </Dialog>
 
-    {/* Barcode Scanner */}
-    <BarcodeScanner
-      open={scannerOpen}
-      onClose={() => setScannerOpen(false)}
-      onScan={handleScanResult}
-      title={`Scan ${scanType === 'label' ? 'Label' : scanType === 'tracking' ? 'Tracking' : 'Serial Number'}`}
-    />
-  </Box>
-);
+      {/* Barcode Scanner */}
+      <BarcodeScanner
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScan={handleScanResult}
+        title={`Scan ${scanType === 'label' ? 'Label' : scanType === 'tracking' ? 'Tracking' : 'Serial Number'}`}
+      />
+    </Box>
+  );
 };
 
 export default DeliveryPage;

@@ -1,6 +1,6 @@
-// src/pages/AddReturnPage.tsx - Updated with Serial Number Scanning Support
+// src/pages/AddReturnPage.tsx - Simplified with Serial Number Focus
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   Box,
   Card,
@@ -26,37 +26,19 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Badge,
-  Accordion,
-  AccordionSummary,
-  AccordionDetails,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
 } from '@mui/material';
 import {
   AssignmentReturn,
   ArrowBack,
   Save,
   QrCodeScanner,
-  AddAPhoto,
-  Delete,
-  Google,
-  CloudUpload,
-  Warning,
   CheckCircle,
-  Error as ErrorIcon,
+  Warning,
   Info,
   Search,
-  Visibility,
-  Edit,
-  ExpandMore,
-  History,
-  Inventory,
-  LocalShipping,
+  Add,
+  CloudUpload,
+  Error as ErrorIcon,
 } from '@mui/icons-material';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
@@ -64,21 +46,17 @@ import * as yup from 'yup';
 import { ObjectSchema } from 'yup';
 import { useAuth } from '../hooks/useAuth';
 import { returnService } from '../services/returnService';
-import { driveService } from '../services/driveService';
 import { 
   ReturnForm, 
   ReturnCondition, 
-  DriveFileReference, 
   SerialNumberValidation,
-  ReturnWithSerialNumber,
   InventoryItemStatus,
-  DeliveryWithSerialNumber,
 } from '../types';
 import BarcodeScanner from '../components/BarcodeScanner';
+import SimpleImageUpload, { convertFilesToDriveReferences } from '../components/SimpleImageUpload';
 import { format } from 'date-fns';
 
 const returnConditions = Object.values(ReturnCondition);
-const fbaFbmOptions = ['FBA', 'FBM'] as const;
 
 const schema: ObjectSchema<ReturnForm> = yup.object({
   serialNumber: yup.string().required('Serial number is required'),
@@ -89,16 +67,15 @@ const schema: ObjectSchema<ReturnForm> = yup.object({
   condition: yup.mixed<ReturnCondition>().oneOf(Object.values(ReturnCondition)).required('Condition is required'),
   reason: yup.string().optional().default(''),
   notes: yup.string().optional().default(''),
-  quantity: yup.number().min(1, 'Quantity must be at least 1').required('Quantity is required'),
+  quantity: yup.number().min(1).required('Quantity is required'),
   removalOrderId: yup.string().optional().default(''),
-  fbaFbm: yup.mixed<'FBA' | 'FBM'>().oneOf(fbaFbmOptions).optional().default('FBA'),
-  returnDecision: yup.mixed<'move_to_inventory' | 'keep_in_returns'>().optional(),
-  returnDecisionNotes: yup.string().optional().default(''),
+  fbaFbm: yup.mixed<'FBA' | 'FBM'>().oneOf(['FBA', 'FBM']).optional().default('FBA'),
 });
 
 const AddReturnPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
   
   // Form states
   const [loading, setLoading] = useState(false);
@@ -111,43 +88,12 @@ const AddReturnPage: React.FC = () => {
   const [serialNumberValidation, setSerialNumberValidation] = useState<SerialNumberValidation | null>(null);
   const [serialNumberLoading, setSerialNumberLoading] = useState(false);
   const [isNewProduct, setIsNewProduct] = useState(false);
-  const [returnInfo, setReturnInfo] = useState<ReturnWithSerialNumber | null>(null);
   
   // Image states
   const [images, setImages] = useState<File[]>([]);
-  const [driveStatus, setDriveStatus] = useState({
-    isInitialized: false,
-    isSignedIn: false,
-    error: null as string | null,
-    isLoading: false,
-    details: 'Not initialized'
-  });
-  const [driveLoading, setDriveLoading] = useState(false);
   
-  // Dialog states
+  // Product details dialog
   const [showProductDialog, setShowProductDialog] = useState(false);
-  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
-  const [deliveryHistory, setDeliveryHistory] = useState<DeliveryWithSerialNumber[]>([]);
-  
-  const MAX_IMAGES = 20;
-
-  // Check Drive status periodically
-  useEffect(() => {
-    const checkDriveStatus = () => {
-      const status = driveService.getStatus();
-      setDriveStatus({
-        isInitialized: status.isInitialized,
-        isSignedIn: status.isSignedIn,
-        error: status.error,
-        isLoading: false,
-        details: status.details
-      });
-    };
-
-    checkDriveStatus();
-    const interval = setInterval(checkDriveStatus, 3000);
-    return () => clearInterval(interval);
-  }, []);
 
   const {
     control,
@@ -159,7 +105,7 @@ const AddReturnPage: React.FC = () => {
   } = useForm<ReturnForm>({
     resolver: yupResolver(schema),
     defaultValues: {
-      serialNumber: '',
+      serialNumber: searchParams.get('serial') || '',
       lpnNumber: '',
       trackingNumber: '',
       productName: '',
@@ -170,8 +116,6 @@ const AddReturnPage: React.FC = () => {
       quantity: 1,
       removalOrderId: '',
       fbaFbm: 'FBA',
-      returnDecision: 'move_to_inventory',
-      returnDecisionNotes: '',
     },
   });
 
@@ -183,10 +127,19 @@ const AddReturnPage: React.FC = () => {
       validateSerialNumber(watchedSerialNumber);
     } else {
       setSerialNumberValidation(null);
-      setReturnInfo(null);
       setIsNewProduct(false);
     }
   }, [watchedSerialNumber]);
+
+  // Pre-fill from URL params if coming from scanning
+  useEffect(() => {
+    if (searchParams.get('serial')) {
+      setValue('serialNumber', searchParams.get('serial')!);
+    }
+    if (searchParams.get('new') === 'true') {
+      setIsNewProduct(true);
+    }
+  }, [searchParams, setValue]);
 
   // Validate serial number
   const validateSerialNumber = async (serialNumber: string) => {
@@ -194,7 +147,6 @@ const AddReturnPage: React.FC = () => {
     setError(null);
     
     try {
-      // Check if serial number exists
       const validation = await returnService.validateSerialNumberForReturn(serialNumber);
       setSerialNumberValidation(validation);
       
@@ -203,27 +155,18 @@ const AddReturnPage: React.FC = () => {
         const canReturn = await returnService.canSerialNumberBeReturned(serialNumber);
         
         if (canReturn.canReturn) {
-          // Get return information
-          const returnInfo = await returnService.getReturnInfoBySerialNumber(serialNumber);
-          setReturnInfo(returnInfo);
-          
           // Pre-fill form with product information
-          if (returnInfo?.originalProductInfo) {
-            setValue('productName', returnInfo.originalProductInfo.productName);
-            setValue('sku', returnInfo.originalProductInfo.sku);
+          if (validation.batch) {
+            setValue('productName', validation.batch.productName);
+            setValue('sku', validation.batch.sku);
           }
-          
           setIsNewProduct(false);
         } else {
           setError(canReturn.reason || 'This item cannot be returned');
-          setReturnInfo(null);
         }
       } else {
         // Serial number doesn't exist - new product
         setIsNewProduct(true);
-        setReturnInfo(null);
-        
-        // Clear pre-filled data
         setValue('productName', '');
         setValue('sku', '');
       }
@@ -242,51 +185,23 @@ const AddReturnPage: React.FC = () => {
       return;
     }
 
-    console.log('📝 Starting return submission...');
-    console.log('📊 Return data:', data);
-    console.log('🔍 Is new product:', isNewProduct);
-    console.log('🖼️ Images to upload:', images.length);
-
     setLoading(true);
     setError(null);
     setSuccess(false);
 
     try {
-      let driveFileReferences: DriveFileReference[] = [];
-      
-      // Upload images if available
-      if (images.length > 0) {
-        if (driveStatus.isSignedIn) {
-          console.log('🔄 Uploading images...');
-          try {
-            driveFileReferences = await driveService.signInAndUpload(images, user.uid);
-            console.log('✅ Files uploaded successfully:', driveFileReferences);
-          } catch (uploadError) {
-            console.error('❌ Upload error:', uploadError);
-            setError('Failed to upload images. You can try again or save without images.');
-            setLoading(false);
-            return;
-          }
-        } else {
-          console.log('⚠️ Images present but not signed in to Google Drive');
-          setError('Images will not be saved because Google Drive is not connected. Connect Google Drive or remove images to continue.');
-          setLoading(false);
-          return;
-        }
-      }
+      // Convert images to drive file references
+      const driveFileReferences = convertFilesToDriveReferences(images, user.uid);
 
-      // Create return based on whether it's a new product or existing
       let result;
       if (isNewProduct) {
-        console.log('🆕 Creating return for new product');
+        // Create return for new product
         result = await returnService.createReturnForNewProduct(data, user.uid, driveFileReferences);
       } else {
-        console.log('🔄 Creating return for existing product');
+        // Create return for existing product
         result = await returnService.createReturnWithSerialNumber(data, user.uid, driveFileReferences);
       }
 
-      console.log('✅ Return created successfully:', result);
-      
       setSuccess(true);
       setActiveStep(3); // Move to success step
       
@@ -295,7 +210,6 @@ const AddReturnPage: React.FC = () => {
         reset();
         setImages([]);
         setSerialNumberValidation(null);
-        setReturnInfo(null);
         setIsNewProduct(false);
         setActiveStep(0);
         navigate('/returns');
@@ -310,59 +224,13 @@ const AddReturnPage: React.FC = () => {
   };
 
   // Barcode scanning
-  const handleScanBarcode = (type: 'serial' | 'tracking' | 'lpn') => {
+  const handleScanBarcode = () => {
     setScannerOpen(true);
   };
 
   const handleScanResult = (scannedCode: string) => {
     setValue('serialNumber', scannedCode);
     setScannerOpen(false);
-  };
-
-  // Image handling
-  const handleImageChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    if (event.target.files) {
-      const filesArray = Array.from(event.target.files);
-      const newImages = [...images, ...filesArray].slice(0, MAX_IMAGES);
-      setImages(newImages);
-    }
-  };
-
-  const handleRemoveImage = (index: number) => {
-    setImages(images.filter((_, i) => i !== index));
-  };
-
-  // Google Drive handling
-  const handleGoogleSignIn = async () => {
-    setDriveLoading(true);
-    setError(null);
-    try {
-      await driveService.mockSignIn();
-      const status = driveService.getStatus();
-      setDriveStatus({
-        isInitialized: status.isInitialized,
-        isSignedIn: status.isSignedIn,
-        error: status.error,
-        isLoading: false,
-        details: status.details
-      });
-    } catch (error) {
-      console.error('Sign-in failed:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Failed to sign in to Google Drive';
-      setError(`Google Drive connection failed: ${errorMessage}`);
-    } finally {
-      setDriveLoading(false);
-    }
-  };
-
-  // View delivery history
-  const viewDeliveryHistory = async () => {
-    if (returnInfo?.originalDeliveryId) {
-      setShowHistoryDialog(true);
-      // In a real implementation, you would load the delivery history
-      // For now, we'll show mock data
-      setDeliveryHistory([]);
-    }
   };
 
   // Get status display for serial number validation
@@ -411,16 +279,16 @@ const AddReturnPage: React.FC = () => {
   // Stepper steps
   const steps = [
     {
-      label: 'Serial Number Validation',
-      description: 'Scan or enter serial number',
+      label: 'Serial Number Scan',
+      description: 'Scan or enter the serial number',
     },
     {
       label: 'Return Details',
       description: 'Enter return information',
     },
     {
-      label: 'Images & Decision',
-      description: 'Add images and make decision',
+      label: 'Images & Notes',
+      description: 'Add photos and notes',
     },
     {
       label: 'Complete',
@@ -435,12 +303,12 @@ const AddReturnPage: React.FC = () => {
         return (
           <Box>
             <Typography variant="h6" gutterBottom>
-              Serial Number Validation
+              Scan Serial Number
             </Typography>
             
             <Alert severity="info" sx={{ mb: 3 }}>
               <Typography variant="body2">
-                <strong>Start with Serial Number:</strong> Scan or enter the serial number of the returned item. 
+                <strong>Start here:</strong> Scan or enter the serial number of the returned item. 
                 The system will check if it exists and load product information automatically.
               </Typography>
             </Alert>
@@ -460,7 +328,7 @@ const AddReturnPage: React.FC = () => {
                       placeholder="Scan or enter serial number"
                       InputProps={{
                         startAdornment: (
-                          <IconButton onClick={() => handleScanBarcode('serial')} edge="start">
+                          <IconButton onClick={handleScanBarcode} edge="start">
                             <QrCodeScanner />
                           </IconButton>
                         ),
@@ -487,21 +355,21 @@ const AddReturnPage: React.FC = () => {
               </Grid>
 
               {/* Product Information Display */}
-              {serialNumberValidation?.exists && returnInfo?.originalProductInfo && (
+              {serialNumberValidation?.exists && serialNumberValidation.batch && (
                 <Grid size={{ xs: 12 }}>
                   <Card variant="outlined">
                     <CardContent>
                       <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                        Product Information
+                        Found Product Information
                       </Typography>
                       <Grid container spacing={2}>
                         <Grid size={6}>
                           <Typography variant="body2" color="text.secondary">Product:</Typography>
-                          <Typography variant="body1">{returnInfo.originalProductInfo.productName}</Typography>
+                          <Typography variant="body1">{serialNumberValidation.batch.productName}</Typography>
                         </Grid>
                         <Grid size={6}>
                           <Typography variant="body2" color="text.secondary">SKU:</Typography>
-                          <Typography variant="body1" fontFamily="monospace">{returnInfo.originalProductInfo.sku}</Typography>
+                          <Typography variant="body1" fontFamily="monospace">{serialNumberValidation.batch.sku}</Typography>
                         </Grid>
                         <Grid size={6}>
                           <Typography variant="body2" color="text.secondary">Status:</Typography>
@@ -512,36 +380,17 @@ const AddReturnPage: React.FC = () => {
                           />
                         </Grid>
                         <Grid size={6}>
-                          <Typography variant="body2" color="text.secondary">Last Delivery:</Typography>
-                          <Typography variant="body1">
-                            {returnInfo.originalProductInfo.deliveryDate 
-                              ? format(new Date(returnInfo.originalProductInfo.deliveryDate), 'MMM dd, yyyy')
-                              : 'Not delivered'
-                            }
-                          </Typography>
+                          <Typography variant="body2" color="text.secondary">Source:</Typography>
+                          <Typography variant="body1">{serialNumberValidation.batch.source}</Typography>
                         </Grid>
-                        {returnInfo.originalProductInfo.customerInfo?.name && (
-                          <Grid size={12}>
-                            <Typography variant="body2" color="text.secondary">Last Customer:</Typography>
-                            <Typography variant="body1">{returnInfo.originalProductInfo.customerInfo.name}</Typography>
-                          </Grid>
-                        )}
                       </Grid>
                       
                       <Box mt={2} display="flex" gap={1}>
                         <Button
                           size="small"
                           variant="outlined"
-                          onClick={viewDeliveryHistory}
-                          startIcon={<History />}
-                        >
-                          View History
-                        </Button>
-                        <Button
-                          size="small"
-                          variant="outlined"
                           onClick={() => setShowProductDialog(true)}
-                          startIcon={<Visibility />}
+                          startIcon={<Search />}
                         >
                           View Details
                         </Button>
@@ -557,7 +406,7 @@ const AddReturnPage: React.FC = () => {
                   <Alert severity="warning">
                     <Typography variant="body2">
                       <strong>New Product:</strong> This serial number doesn't exist in the system. 
-                      You'll need to enter product information manually. The system will create a new product record.
+                      You'll need to enter product information manually.
                     </Typography>
                   </Alert>
                 </Grid>
@@ -575,7 +424,7 @@ const AddReturnPage: React.FC = () => {
               <Button
                 onClick={() => setActiveStep(1)}
                 variant="contained"
-                disabled={!watchedSerialNumber || serialNumberLoading}
+                disabled={!watchedSerialNumber || serialNumberLoading || !!error}
               >
                 Next: Return Details
               </Button>
@@ -587,7 +436,7 @@ const AddReturnPage: React.FC = () => {
         return (
           <Box>
             <Typography variant="h6" gutterBottom>
-              Return Details
+              Return Information
             </Typography>
             
             <Grid container spacing={3}>
@@ -602,13 +451,7 @@ const AddReturnPage: React.FC = () => {
                       label="LPN Number *"
                       error={!!errors.lpnNumber}
                       helperText={errors.lpnNumber?.message}
-                      InputProps={{
-                        endAdornment: (
-                          <IconButton onClick={() => handleScanBarcode('lpn')} edge="end">
-                            <QrCodeScanner />
-                          </IconButton>
-                        ),
-                      }}
+                      placeholder="License Plate Number"
                     />
                   )}
                 />
@@ -625,13 +468,7 @@ const AddReturnPage: React.FC = () => {
                       label="Tracking Number *"
                       error={!!errors.trackingNumber}
                       helperText={errors.trackingNumber?.message}
-                      InputProps={{
-                        endAdornment: (
-                          <IconButton onClick={() => handleScanBarcode('tracking')} edge="end">
-                            <QrCodeScanner />
-                          </IconButton>
-                        ),
-                      }}
+                      placeholder="Return shipping tracking"
                     />
                   )}
                 />
@@ -711,11 +548,8 @@ const AddReturnPage: React.FC = () => {
                   control={control}
                   render={({ field }) => (
                     <TextField {...field} select fullWidth label="FBA/FBM">
-                      {fbaFbmOptions.map((option) => (
-                        <MenuItem key={option} value={option}>
-                          {option}
-                        </MenuItem>
-                      ))}
+                      <MenuItem value="FBA">FBA</MenuItem>
+                      <MenuItem value="FBM">FBM</MenuItem>
                     </TextField>
                   )}
                 />
@@ -770,7 +604,7 @@ const AddReturnPage: React.FC = () => {
                 onClick={() => setActiveStep(2)}
                 variant="contained"
               >
-                Next: Images & Decision
+                Next: Images & Notes
               </Button>
             </Box>
           </Box>
@@ -780,166 +614,20 @@ const AddReturnPage: React.FC = () => {
         return (
           <Box>
             <Typography variant="h6" gutterBottom>
-              Images & Return Decision
+              Product Images & Additional Notes
             </Typography>
             
-            <Grid container spacing={3}>
-              {/* Image Upload Section */}
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Card variant="outlined">
-                  <CardContent>
-                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                      Product Images ({images.length}/{MAX_IMAGES})
-                    </Typography>
+            <Typography variant="body2" color="text.secondary" paragraph>
+              Add photos of the returned product to document its condition. You can also add them later if needed.
+            </Typography>
 
-                    {/* Drive Status */}
-                    <Alert 
-                      severity={driveStatus.isSignedIn ? 'success' : 'warning'} 
-                      sx={{ mb: 2 }}
-                      icon={driveStatus.isSignedIn ? <CheckCircle /> : <Warning />}
-                    >
-                      <Typography variant="body2">
-                        Google Drive: {driveStatus.isSignedIn ? 'Connected' : 'Not Connected'}
-                      </Typography>
-                    </Alert>
-
-                    {/* Images Preview */}
-                    <Paper variant="outlined" sx={{ p: 1, display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 1, minHeight: 150 }}>
-                      {images.map((image, index) => (
-                        <Box key={index} sx={{ position: 'relative' }}>
-                          <img 
-                            src={URL.createObjectURL(image)} 
-                            alt={`preview ${index}`} 
-                            style={{ 
-                              width: '100%', 
-                              height: 'auto', 
-                              aspectRatio: '1 / 1', 
-                              objectFit: 'cover', 
-                              borderRadius: 4 
-                            }} 
-                          />
-                          <IconButton 
-                            size="small" 
-                            onClick={() => handleRemoveImage(index)} 
-                            sx={{ 
-                              position: 'absolute', 
-                              top: -5, 
-                              right: -5, 
-                              bgcolor: 'rgba(255,255,255,0.9)', 
-                              '&:hover': { bgcolor: 'white' }
-                            }}
-                          >
-                            <Delete fontSize="small" />
-                          </IconButton>
-                        </Box>
-                      ))}
-                    </Paper>
-
-                    {/* Add Images Button */}
-                    <Button 
-                      fullWidth 
-                      variant="outlined" 
-                      component="label" 
-                      startIcon={<AddAPhoto />} 
-                      sx={{ mt: 2 }} 
-                      disabled={images.length >= MAX_IMAGES}
-                    >
-                      Add Images
-                      <input 
-                        type="file" 
-                        hidden 
-                        multiple 
-                        accept="image/*" 
-                        onChange={handleImageChange} 
-                      />
-                    </Button>
-
-                    {/* Google Drive Connection */}
-                    {!driveStatus.isSignedIn && (
-                      <Button 
-                        fullWidth 
-                        variant="contained" 
-                        startIcon={driveLoading ? <CircularProgress size={20} /> : <Google />} 
-                        onClick={handleGoogleSignIn}
-                        disabled={driveLoading}
-                        sx={{ mt: 2 }}
-                      >
-                        {driveLoading ? 'Connecting...' : 'Connect Google Drive'}
-                      </Button>
-                    )}
-                  </CardContent>
-                </Card>
-              </Grid>
-
-              {/* Return Decision Section */}
-              <Grid size={{ xs: 12, md: 6 }}>
-                <Card variant="outlined">
-                  <CardContent>
-                    <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
-                      Return Decision
-                    </Typography>
-
-                    <Controller
-                      name="returnDecision"
-                      control={control}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          select
-                          fullWidth
-                          label="What to do with this return?"
-                          sx={{ mb: 2 }}
-                        >
-                          <MenuItem value="move_to_inventory">
-                            <Box display="flex" alignItems="center" gap={1}>
-                              <Inventory color="success" />
-                              <Box>
-                                <Typography variant="body2">Move to Inventory</Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  Item will be available for delivery
-                                </Typography>
-                              </Box>
-                            </Box>
-                          </MenuItem>
-                          <MenuItem value="keep_in_returns">
-                            <Box display="flex" alignItems="center" gap={1}>
-                              <AssignmentReturn color="warning" />
-                              <Box>
-                                <Typography variant="body2">Keep in Returns</Typography>
-                                <Typography variant="caption" color="text.secondary">
-                                  Item stays in returns section
-                                </Typography>
-                              </Box>
-                            </Box>
-                          </MenuItem>
-                        </TextField>
-                      )}
-                    />
-
-                    <Controller
-                      name="returnDecisionNotes"
-                      control={control}
-                      render={({ field }) => (
-                        <TextField
-                          {...field}
-                          fullWidth
-                          multiline
-                          rows={3}
-                          label="Decision Notes"
-                          placeholder="Why are you making this decision?"
-                        />
-                      )}
-                    />
-
-                    <Alert severity="info" sx={{ mt: 2 }}>
-                      <Typography variant="body2">
-                        <strong>Note:</strong> You can change this decision later from the returns management page.
-                      </Typography>
-                    </Alert>
-                  </CardContent>
-                </Card>
-              </Grid>
-            </Grid>
+            <SimpleImageUpload
+              images={images}
+              onImagesChange={setImages}
+              maxImages={10}
+              title="Return Product Images"
+              description="Take photos showing the product condition"
+            />
 
             <Box mt={3} display="flex" justifyContent="space-between">
               <Button
@@ -962,7 +650,7 @@ const AddReturnPage: React.FC = () => {
         return (
           <Box>
             <Typography variant="h6" gutterBottom>
-              Review & Submit Return
+              Review Return Information
             </Typography>
             
             {/* Review Summary */}
@@ -997,22 +685,22 @@ const AddReturnPage: React.FC = () => {
                     <Typography variant="body1" fontWeight="bold">{watch('quantity')}</Typography>
                   </Grid>
                   <Grid size={6}>
-                    <Typography variant="body2" color="text.secondary">Decision:</Typography>
-                    <Chip 
-                      label={watch('returnDecision') === 'move_to_inventory' ? 'Move to Inventory' : 'Keep in Returns'} 
-                      color={watch('returnDecision') === 'move_to_inventory' ? 'success' : 'warning'}
-                      size="small" 
-                    />
-                  </Grid>
-                  <Grid size={6}>
                     <Typography variant="body2" color="text.secondary">Images:</Typography>
                     <Typography variant="body1">{images.length} images attached</Typography>
+                  </Grid>
+                  <Grid size={6}>
+                    <Typography variant="body2" color="text.secondary">Product Type:</Typography>
+                    <Chip 
+                      label={isNewProduct ? 'New Product' : 'Existing Product'} 
+                      color={isNewProduct ? 'warning' : 'success'}
+                      size="small" 
+                    />
                   </Grid>
                 </Grid>
               </CardContent>
             </Card>
 
-            {/* Action Summary */}
+            {/* What will happen */}
             <Card variant="outlined" sx={{ mb: 3 }}>
               <CardContent>
                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
@@ -1043,16 +731,13 @@ const AddReturnPage: React.FC = () => {
                   <Box display="flex" alignItems="center" gap={1}>
                     <CheckCircle color="success" fontSize="small" />
                     <Typography variant="body2">
-                      {images.length} images will be uploaded to Google Drive
+                      {images.length} images will be stored with the return
                     </Typography>
                   </Box>
                   <Box display="flex" alignItems="center" gap={1}>
                     <CheckCircle color="success" fontSize="small" />
                     <Typography variant="body2">
-                      {watch('returnDecision') === 'move_to_inventory' 
-                        ? 'Item will be moved to inventory for future delivery'
-                        : 'Item will remain in returns section'
-                      }
+                      Return will be pending decision (move to inventory or keep in returns)
                     </Typography>
                   </Box>
                 </Box>
@@ -1158,22 +843,22 @@ const AddReturnPage: React.FC = () => {
           <Card sx={{ mb: 3 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Return Process Guidelines
+                Return Process
               </Typography>
               <Box display="flex" flexDirection="column" gap={2}>
                 <Alert severity="info" icon={<Info />}>
                   <Typography variant="body2">
-                    <strong>Serial Number First:</strong> Always start by scanning or entering the serial number.
+                    <strong>Serial Number First:</strong> Always start by scanning the serial number.
                   </Typography>
                 </Alert>
                 <Alert severity="success" icon={<CheckCircle />}>
                   <Typography variant="body2">
-                    <strong>Auto-Fill:</strong> If the serial number exists, product details will be loaded automatically.
+                    <strong>Auto-Fill:</strong> Product details load automatically if found.
                   </Typography>
                 </Alert>
                 <Alert severity="warning" icon={<Warning />}>
                   <Typography variant="body2">
-                    <strong>New Products:</strong> If the serial number doesn't exist, you'll create a new product record.
+                    <strong>New Products:</strong> Enter details manually for unknown serial numbers.
                   </Typography>
                 </Alert>
               </Box>
@@ -1203,7 +888,7 @@ const AddReturnPage: React.FC = () => {
                   {serialNumberValidation?.exists && (
                     <Box>
                       <Typography variant="body2" color="text.secondary">
-                        Current Status: {serialNumberValidation.currentStatus}
+                        Status: {serialNumberValidation.currentStatus}
                       </Typography>
                       <Typography variant="body2" color="text.secondary">
                         Product: {serialNumberValidation.batch?.productName}
@@ -1231,17 +916,17 @@ const AddReturnPage: React.FC = () => {
                 </Button>
                 <Button
                   variant="outlined"
-                  startIcon={<Inventory />}
-                  onClick={() => navigate('/inventory')}
-                >
-                  View Inventory
-                </Button>
-                <Button
-                  variant="outlined"
                   startIcon={<Search />}
                   onClick={() => navigate('/search')}
                 >
                   Global Search
+                </Button>
+                <Button
+                  variant="outlined"
+                  startIcon={<QrCodeScanner />}
+                  onClick={handleScanBarcode}
+                >
+                  Scan Serial Number
                 </Button>
               </Box>
             </CardContent>
@@ -1253,34 +938,31 @@ const AddReturnPage: React.FC = () => {
       <Dialog open={showProductDialog} onClose={() => setShowProductDialog(false)} maxWidth="md" fullWidth>
         <DialogTitle>Product Details</DialogTitle>
         <DialogContent>
-          {returnInfo?.originalProductInfo && (
+          {serialNumberValidation?.batch && (
             <Box>
               <Typography variant="h6" gutterBottom>
-                {returnInfo.originalProductInfo.productName}
+                {serialNumberValidation.batch.productName}
               </Typography>
               <Grid container spacing={2}>
                 <Grid size={6}>
-                  <Typography variant="body2" color="text.secondary">SKU:</Typography>
-                  <Typography variant="body1" fontFamily="monospace">{returnInfo.originalProductInfo.sku}</Typography>
-                </Grid>
-                <Grid size={6}>
-                  <Typography variant="body2" color="text.secondary">Batch ID:</Typography>
-                  <Typography variant="body1" fontFamily="monospace">{returnInfo.originalProductInfo.batchId}</Typography>
-                </Grid>
-                <Grid size={6}>
-                  <Typography variant="body2" color="text.secondary">Delivery Date:</Typography>
-                  <Typography variant="body1">
-                    {returnInfo.originalProductInfo.deliveryDate 
-                      ? format(new Date(returnInfo.originalProductInfo.deliveryDate), 'PPpp')
-                      : 'Not delivered'
-                    }
+                  <Typography variant="body2" color="text.secondary">Available:</Typography>
+                  <Typography variant="body1" color="success.main" fontWeight="bold">
+                    {serialNumberValidation.batch.availableQuantity}
                   </Typography>
                 </Grid>
                 <Grid size={6}>
-                  <Typography variant="body2" color="text.secondary">Customer:</Typography>
+                  <Typography variant="body2" color="text.secondary">Source:</Typography>
+                  <Typography variant="body1">{serialNumberValidation.batch.source}</Typography>
+                </Grid>
+                <Grid size={12}>
+                  <Typography variant="body2" color="text.secondary">Received Date:</Typography>
                   <Typography variant="body1">
-                    {returnInfo.originalProductInfo.customerInfo?.name || 'Not available'}
+                    {format(new Date(serialNumberValidation.batch.receivedDate), 'PPpp')}
                   </Typography>
+                </Grid>
+                <Grid size={12}>
+                  <Typography variant="body2" color="text.secondary">Notes:</Typography>
+                  <Typography variant="body1">{serialNumberValidation.batch.batchNotes || 'No notes'}</Typography>
                 </Grid>
               </Grid>
             </Box>
@@ -1288,54 +970,6 @@ const AddReturnPage: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setShowProductDialog(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Delivery History Dialog */}
-      <Dialog open={showHistoryDialog} onClose={() => setShowHistoryDialog(false)} maxWidth="md" fullWidth>
-        <DialogTitle>Delivery History</DialogTitle>
-        <DialogContent>
-          <Typography variant="body2" color="text.secondary" gutterBottom>
-            Complete delivery history for serial number {watchedSerialNumber}
-          </Typography>
-          
-          {deliveryHistory.length === 0 ? (
-            <Alert severity="info">
-              <Typography variant="body2">
-                No delivery history available for this serial number.
-              </Typography>
-            </Alert>
-          ) : (
-            <TableContainer>
-              <Table>
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Date</TableCell>
-                    <TableCell>Customer</TableCell>
-                    <TableCell>Carrier</TableCell>
-                    <TableCell>Status</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {deliveryHistory.map((delivery) => (
-                    <TableRow key={delivery.deliveryId}>
-                      <TableCell>
-                        {format(new Date(delivery.deliveryDate), 'MMM dd, yyyy')}
-                      </TableCell>
-                      <TableCell>{delivery.customerInfo.name || 'N/A'}</TableCell>
-                      <TableCell>{delivery.shippingLabelData.carrier}</TableCell>
-                      <TableCell>
-                        <Chip label={delivery.status} size="small" />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          )}
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setShowHistoryDialog(false)}>Close</Button>
         </DialogActions>
       </Dialog>
 
