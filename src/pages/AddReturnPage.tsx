@@ -10,7 +10,7 @@ import {
   Typography,
   Alert,
   MenuItem,
-  Grid,
+  Grid2 as Grid, // <-- CHANGE HERE
   CircularProgress,
   Paper,
   IconButton,
@@ -314,7 +314,7 @@ const AddReturnPage: React.FC = () => {
             </Alert>
 
             <Grid container spacing={3}>
-              <Grid item xs={12}>
+              <Grid xs={12}>
                 <Controller
                   name="serialNumber"
                   control={control}
@@ -342,7 +342,7 @@ const AddReturnPage: React.FC = () => {
               </Grid>
 
               {/* Serial Number Status */}
-              <Grid item xs={12}>
+              <Grid xs={12}>
                 <Alert
                   severity={statusDisplay.color as any}
                   icon={statusDisplay.icon}
@@ -356,22 +356,22 @@ const AddReturnPage: React.FC = () => {
 
               {/* Product Information Display */}
               {serialNumberValidation?.exists && serialNumberValidation.batch && (
-                <Grid item xs={12}>
+                <Grid xs={12}>
                   <Card variant="outlined">
                     <CardContent>
                       <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                         Found Product Information
                       </Typography>
                       <Grid container spacing={2}>
-                        <Grid item xs={6}>
+                        <Grid xs={6}>
                           <Typography variant="body2" color="text.secondary">Product:</Typography>
                           <Typography variant="body1">{serialNumberValidation.batch.productName}</Typography>
                         </Grid>
-                        <Grid item xs={6}>
+                        <Grid xs={6}>
                           <Typography variant="body2" color="text.secondary">SKU:</Typography>
                           <Typography variant="body1" fontFamily="monospace">{serialNumberValidation.batch.sku}</Typography>
                         </Grid>
-                        <Grid item xs={6}>
+                        <Grid xs={6}>
                           <Typography variant="body2" color="text.secondary">Status:</Typography>
                           <Chip
                             label={serialNumberValidation.currentStatus}
@@ -379,7 +379,7 @@ const AddReturnPage: React.FC = () => {
                             size="small"
                           />
                         </Grid>
-                        <Grid item xs={6}>
+                        <Grid xs={6}>
                           <Typography variant="body2" color="text.secondary">Source:</Typography>
                           <Typography variant="body1">{serialNumberValidation.batch.source}</Typography>
                         </Grid>
@@ -402,7 +402,7 @@ const AddReturnPage: React.FC = () => {
 
               {/* New Product Notice */}
               {isNewProduct && (
-                <Grid item xs={12}>
+                <Grid xs={12}>
                   <Alert severity="warning">
                     <Typography variant="body2">
                       <strong>New Product:</strong> This serial number doesn't exist in the system.
@@ -440,7 +440,7 @@ const AddReturnPage: React.FC = () => {
             </Typography>
 
             <Grid container spacing={3}>
-              <Grid item xs={12} md={6}>
+              <Grid xs={12} md={6}>
                 <Controller
                   name="lpnNumber"
                   control={control}
@@ -457,7 +457,7 @@ const AddReturnPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid item xs={12} md={6}>
+              <Grid xs={12} md={6}>
                 <Controller
                   name="trackingNumber"
                   control={control}
@@ -474,7 +474,7 @@ const AddReturnPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid item xs={12}>
+              <Grid xs={12}>
                 <Controller
                   name="productName"
                   control={control}
@@ -491,7 +491,7 @@ const AddReturnPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid item xs={12} md={6}>
+              <Grid xs={12} md={6}>
                 <Controller
                   name="sku"
                   control={control}
@@ -506,7 +506,7 @@ const AddReturnPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid item xs={12} md={6}>
+              <Grid xs={12} md={6}>
                 <Controller
                   name="quantity"
                   control={control}
@@ -526,7 +526,7 @@ const AddReturnPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid item xs={12} md={6}>
+              <Grid xs={12} md={6}>
                 <Controller
                   name="condition"
                   control={control}
@@ -542,7 +542,7 @@ const AddReturnPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid item xs={12} md={6}>
+              <Grid xs={12} md={6}>
                 <Controller
                   name="fbaFbm"
                   control={control}
@@ -555,7 +555,7 @@ const AddReturnPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid item xs={12} md={6}>
+              <Grid xs={12} md={6}>
                 <Controller
                   name="removalOrderId"
                   control={control}
@@ -565,7 +565,7 @@ const AddReturnPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid item xs={12} md={6}>
+              <Grid xs={12} md={6}>
                 <Controller
                   name="reason"
                   control={control}
@@ -575,7 +575,7 @@ const AddReturnPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid item xs={12}>
+              <Grid xs={12}>
                 <Controller
                   name="notes"
                   control={control}
@@ -660,35 +660,35 @@ const AddReturnPage: React.FC = () => {
                   Return Summary
                 </Typography>
                 <Grid container spacing={2}>
-                  <Grid item xs={6}>
+                  <Grid xs={6}>
                     <Typography variant="body2" color="text.secondary">Serial Number:</Typography>
                     <Typography variant="body1" fontFamily="monospace">{watch('serialNumber')}</Typography>
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid xs={6}>
                     <Typography variant="body2" color="text.secondary">LPN Number:</Typography>
                     <Typography variant="body1" fontFamily="monospace">{watch('lpnNumber')}</Typography>
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid xs={6}>
                     <Typography variant="body2" color="text.secondary">Product:</Typography>
                     <Typography variant="body1">{watch('productName')}</Typography>
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid xs={6}>
                     <Typography variant="body2" color="text.secondary">SKU:</Typography>
                     <Typography variant="body1" fontFamily="monospace">{watch('sku')}</Typography>
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid xs={6}>
                     <Typography variant="body2" color="text.secondary">Condition:</Typography>
                     <Chip label={watch('condition')} size="small" />
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid xs={6}>
                     <Typography variant="body2" color="text.secondary">Quantity:</Typography>
                     <Typography variant="body1" fontWeight="bold">{watch('quantity')}</Typography>
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid xs={6}>
                     <Typography variant="body2" color="text.secondary">Images:</Typography>
                     <Typography variant="body1">{images.length} images attached</Typography>
                   </Grid>
-                  <Grid item xs={6}>
+                  <Grid xs={6}>
                     <Typography variant="body2" color="text.secondary">Product Type:</Typography>
                     <Chip
                       label={isNewProduct ? 'New Product' : 'Existing Product'}
@@ -817,7 +817,7 @@ const AddReturnPage: React.FC = () => {
 
       {/* Main Content */}
       <Grid container spacing={3}>
-        <Grid item xs={12} md={8}>
+        <Grid xs={12} md={8}>
           <Card>
             <CardContent>
               <Stepper activeStep={activeStep} orientation="vertical">
@@ -838,7 +838,7 @@ const AddReturnPage: React.FC = () => {
         </Grid>
 
         {/* Sidebar */}
-        <Grid item xs={12} md={4}>
+        <Grid xs={12} md={4}>
           {/* Return Process Guidelines */}
           <Card sx={{ mb: 3 }}>
             <CardContent>
@@ -944,23 +944,23 @@ const AddReturnPage: React.FC = () => {
                 {serialNumberValidation.batch.productName}
               </Typography>
               <Grid container spacing={2}>
-                <Grid item xs={6}>
+                <Grid xs={6}>
                   <Typography variant="body2" color="text.secondary">Available:</Typography>
                   <Typography variant="body1" color="success.main" fontWeight="bold">
                     {serialNumberValidation.batch.availableQuantity}
                   </Typography>
                 </Grid>
-                <Grid item xs={6}>
+                <Grid xs={6}>
                   <Typography variant="body2" color="text.secondary">Source:</Typography>
                   <Typography variant="body1">{serialNumberValidation.batch.source}</Typography>
                 </Grid>
-                <Grid item xs={12}>
+                <Grid xs={12}>
                   <Typography variant="body2" color="text.secondary">Received Date:</Typography>
                   <Typography variant="body1">
                     {format(new Date(serialNumberValidation.batch.receivedDate), 'PPpp')}
                   </Typography>
                 </Grid>
-                <Grid item xs={12}>
+                <Grid xs={12}>
                   <Typography variant="body2" color="text.secondary">Notes:</Typography>
                   <Typography variant="body1">{serialNumberValidation.batch.batchNotes || 'No notes'}</Typography>
                 </Grid>

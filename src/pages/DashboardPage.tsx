@@ -1,4 +1,4 @@
-// src/pages/Dashboard.tsx
+// src/pages/DashboardPage.tsx - Fixed Grid usage
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
@@ -6,7 +6,7 @@ import {
   Typography,
   Card,
   CardContent,
-  Grid,
+  Grid2 as Grid, // Fixed Grid import
   Button,
   Alert,
   CircularProgress,
@@ -16,7 +16,7 @@ import {
   Divider,
 } from '@mui/material';
 import {
-  Inventory2 as PackageIcon, // Corrected: Import Inventory2 and alias it as PackageIcon for clarity
+  Inventory2 as PackageIcon,
   AssignmentReturn,
   Inventory,
   LocalShipping,
@@ -178,7 +178,7 @@ const Dashboard: React.FC = () => {
 
       {/* Main Stats Cards with LIVE DATA */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid xs={12} sm={6} md={3}> {/* Fixed Grid usage */}
           <StatCard
             title="Today's Received"
             value={stats.todayReceived}
@@ -188,7 +188,7 @@ const Dashboard: React.FC = () => {
           />
         </Grid>
         
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid xs={12} sm={6} md={3}> {/* Fixed Grid usage */}
           <StatCard
             title="Pending Returns"
             value={stats.pendingReturnItems}
@@ -199,7 +199,7 @@ const Dashboard: React.FC = () => {
           />
         </Grid>
         
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid xs={12} sm={6} md={3}> {/* Fixed Grid usage */}
           <StatCard
             title="Available Inventory"
             value={stats.totalInventoryItems}
@@ -209,7 +209,7 @@ const Dashboard: React.FC = () => {
           />
         </Grid>
         
-        <Grid size={{ xs: 12, sm: 6, md: 3 }}>
+        <Grid xs={12} sm={6} md={3}> {/* Fixed Grid usage */}
           <StatCard
             title="Today's Dispatched"
             value={stats.todayDispatched}
