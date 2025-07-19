@@ -60,14 +60,14 @@ const QuickSerialAssignment: React.FC<QuickSerialAssignmentProps> = ({
 
   const loadUnassignedItems = async () => {
     if (!batch) return;
-    
+
     setLoading(true);
     setError(null);
     try {
       const allItems = await inventoryService.getItemsByBatchId(batch.id);
       const needingSerial = allItems.filter(item => !item.serialNumber);
       setUnassignedItems(needingSerial);
-      
+
       // Initialize empty serial numbers array
       setSerialNumbers(new Array(needingSerial.length).fill(''));
       setBulkInput('');
@@ -90,11 +90,11 @@ const QuickSerialAssignment: React.FC<QuickSerialAssignmentProps> = ({
   const autoGenerate = () => {
     const timestamp = Date.now().toString().slice(-6);
     const sku = batch?.sku.replace(/[^A-Z0-9]/g, '').substring(0, 4) || 'ITEM';
-    
-    const generated = unassignedItems.map((_, index) => 
+
+    const generated = unassignedItems.map((_, index) =>
       `${sku}${timestamp}${String(index + 1).padStart(3, '0')}`
     );
-    
+
     setSerialNumbers(generated);
   };
 
@@ -104,14 +104,14 @@ const QuickSerialAssignment: React.FC<QuickSerialAssignmentProps> = ({
       .split('\n')
       .map(line => line.trim())
       .filter(line => line !== '');
-    
+
     const newSerials = [...serialNumbers];
     lines.forEach((line, index) => {
       if (index < newSerials.length) {
         newSerials[index] = line;
       }
     });
-    
+
     setSerialNumbers(newSerials);
     setBulkInput('');
   };
@@ -149,7 +149,7 @@ const QuickSerialAssignment: React.FC<QuickSerialAssignmentProps> = ({
 
     setSaving(true);
     setError(null);
-    
+
     try {
       const bulkForm = {
         batchId: batch.id,
@@ -159,7 +159,7 @@ const QuickSerialAssignment: React.FC<QuickSerialAssignmentProps> = ({
       };
 
       const result = await inventoryService.bulkAssignSerialNumbers(bulkForm);
-      
+
       if (result.successful > 0) {
         onSuccess();
         onClose();

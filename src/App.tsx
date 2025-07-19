@@ -35,45 +35,45 @@ const AppContent: React.FC = () => {
     <Router>
       <Routes>
         {/* Public Routes */}
-        <Route 
-          path="/login" 
+        <Route
+          path="/login"
           element={
             user ? <Navigate to="/dashboard" replace /> : <LoginPage />
-          } 
+          }
         />
-        
+
         {/* Protected Routes */}
         <Route path="/" element={<ProtectedRoute />}>
           <Route path="/" element={<Layout />}>
             <Route index element={<Navigate to="/dashboard" replace />} />
             <Route path="dashboard" element={<DashboardPage />} />
-            
+
             {/* Package Management */}
             <Route path="receive" element={<ReceivePackagePage />} />
             <Route path="packages" element={<PackageListPage />} />
             <Route path="packages/:id" element={<PackageDetailPage />} />
-            
+
             {/* Returns Management */}
             <Route path="returns" element={<ReturnsPage />} />
             <Route path="returns/new" element={<AddReturnPage />} />
             <Route path="returns/:id" element={<ReturnDetailPage />} />
-            
+
             {/* Inventory Management */}
             <Route path="inventory" element={<InventoryPage />} />
-            
+
             {/* --- CORRECTED ROUTE --- */}
             {/* This now correctly points to the page for receiving new packages/inventory */}
             <Route path="inventory/new" element={<ReceivePackagePage />} />
-            
+
             {/* Delivery Management */}
             <Route path="delivery" element={<DeliveryPage />} />
-            
+
             {/* Search */}
             <Route path="search" element={<GlobalSearchPage />} />
-            
+
             {/* Stock Management */}
             <Route path="stock" element={<StockLogPage />} />
-            
+
             {/* Settings */}
             <Route path="settings" element={<SettingsPage />} />
           </Route>

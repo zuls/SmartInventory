@@ -46,9 +46,9 @@ import * as yup from 'yup';
 import { ObjectSchema } from 'yup';
 import { useAuth } from '../hooks/useAuth';
 import { returnService } from '../services/returnService';
-import { 
-  ReturnForm, 
-  ReturnCondition, 
+import {
+  ReturnForm,
+  ReturnCondition,
   SerialNumberValidation,
   InventoryItemStatus,
 } from '../types';
@@ -76,22 +76,22 @@ const AddReturnPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [searchParams] = useSearchParams();
-  
+
   // Form states
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeStep, setActiveStep] = useState(0);
-  
+
   // Serial number states
   const [scannerOpen, setScannerOpen] = useState(false);
   const [serialNumberValidation, setSerialNumberValidation] = useState<SerialNumberValidation | null>(null);
   const [serialNumberLoading, setSerialNumberLoading] = useState(false);
   const [isNewProduct, setIsNewProduct] = useState(false);
-  
+
   // Image states
   const [images, setImages] = useState<File[]>([]);
-  
+
   // Product details dialog
   const [showProductDialog, setShowProductDialog] = useState(false);
 
@@ -145,15 +145,15 @@ const AddReturnPage: React.FC = () => {
   const validateSerialNumber = async (serialNumber: string) => {
     setSerialNumberLoading(true);
     setError(null);
-    
+
     try {
       const validation = await returnService.validateSerialNumberForReturn(serialNumber);
       setSerialNumberValidation(validation);
-      
+
       if (validation.exists && validation.item) {
         // Check if item can be returned
         const canReturn = await returnService.canSerialNumberBeReturned(serialNumber);
-        
+
         if (canReturn.canReturn) {
           // Pre-fill form with product information
           if (validation.batch) {
@@ -204,7 +204,7 @@ const AddReturnPage: React.FC = () => {
 
       setSuccess(true);
       setActiveStep(3); // Move to success step
-      
+
       // Reset form after success
       setTimeout(() => {
         reset();
@@ -214,7 +214,7 @@ const AddReturnPage: React.FC = () => {
         setActiveStep(0);
         navigate('/returns');
       }, 3000);
-      
+
     } catch (err) {
       console.error('Error creating return:', err);
       setError(err instanceof Error ? err.message : 'Failed to create return');
@@ -242,7 +242,7 @@ const AddReturnPage: React.FC = () => {
         color: 'info',
       };
     }
-    
+
     if (!serialNumberValidation) {
       return {
         icon: <Search />,
@@ -250,7 +250,7 @@ const AddReturnPage: React.FC = () => {
         color: 'default',
       };
     }
-    
+
     if (serialNumberValidation.exists) {
       if (serialNumberValidation.currentStatus === InventoryItemStatus.DELIVERED) {
         return {
@@ -305,16 +305,16 @@ const AddReturnPage: React.FC = () => {
             <Typography variant="h6" gutterBottom>
               Scan Serial Number
             </Typography>
-            
+
             <Alert severity="info" sx={{ mb: 3 }}>
               <Typography variant="body2">
-                <strong>Start here:</strong> Scan or enter the serial number of the returned item. 
+                <strong>Start here:</strong> Scan or enter the serial number of the returned item.
                 The system will check if it exists and load product information automatically.
               </Typography>
             </Alert>
 
             <Grid container spacing={3}>
-              <Grid size={{ xs: 12 }}>
+              <Grid item xs={12}>
                 <Controller
                   name="serialNumber"
                   control={control}
@@ -342,9 +342,9 @@ const AddReturnPage: React.FC = () => {
               </Grid>
 
               {/* Serial Number Status */}
-              <Grid size={{ xs: 12 }}>
-                <Alert 
-                  severity={statusDisplay.color as any} 
+              <Grid item xs={12}>
+                <Alert
+                  severity={statusDisplay.color as any}
                   icon={statusDisplay.icon}
                   sx={{ mb: 2 }}
                 >
@@ -356,22 +356,22 @@ const AddReturnPage: React.FC = () => {
 
               {/* Product Information Display */}
               {serialNumberValidation?.exists && serialNumberValidation.batch && (
-                <Grid size={{ xs: 12 }}>
+                <Grid item xs={12}>
                   <Card variant="outlined">
                     <CardContent>
                       <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                         Found Product Information
                       </Typography>
                       <Grid container spacing={2}>
-                        <Grid size={6}>
+                        <Grid item xs={6}>
                           <Typography variant="body2" color="text.secondary">Product:</Typography>
                           <Typography variant="body1">{serialNumberValidation.batch.productName}</Typography>
                         </Grid>
-                        <Grid size={6}>
+                        <Grid item xs={6}>
                           <Typography variant="body2" color="text.secondary">SKU:</Typography>
                           <Typography variant="body1" fontFamily="monospace">{serialNumberValidation.batch.sku}</Typography>
                         </Grid>
-                        <Grid size={6}>
+                        <Grid item xs={6}>
                           <Typography variant="body2" color="text.secondary">Status:</Typography>
                           <Chip
                             label={serialNumberValidation.currentStatus}
@@ -379,12 +379,12 @@ const AddReturnPage: React.FC = () => {
                             size="small"
                           />
                         </Grid>
-                        <Grid size={6}>
+                        <Grid item xs={6}>
                           <Typography variant="body2" color="text.secondary">Source:</Typography>
                           <Typography variant="body1">{serialNumberValidation.batch.source}</Typography>
                         </Grid>
                       </Grid>
-                      
+
                       <Box mt={2} display="flex" gap={1}>
                         <Button
                           size="small"
@@ -402,10 +402,10 @@ const AddReturnPage: React.FC = () => {
 
               {/* New Product Notice */}
               {isNewProduct && (
-                <Grid size={{ xs: 12 }}>
+                <Grid item xs={12}>
                   <Alert severity="warning">
                     <Typography variant="body2">
-                      <strong>New Product:</strong> This serial number doesn't exist in the system. 
+                      <strong>New Product:</strong> This serial number doesn't exist in the system.
                       You'll need to enter product information manually.
                     </Typography>
                   </Alert>
@@ -438,9 +438,9 @@ const AddReturnPage: React.FC = () => {
             <Typography variant="h6" gutterBottom>
               Return Information
             </Typography>
-            
+
             <Grid container spacing={3}>
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid item xs={12} md={6}>
                 <Controller
                   name="lpnNumber"
                   control={control}
@@ -457,7 +457,7 @@ const AddReturnPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid item xs={12} md={6}>
                 <Controller
                   name="trackingNumber"
                   control={control}
@@ -474,7 +474,7 @@ const AddReturnPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid size={{ xs: 12 }}>
+              <Grid item xs={12}>
                 <Controller
                   name="productName"
                   control={control}
@@ -491,7 +491,7 @@ const AddReturnPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid item xs={12} md={6}>
                 <Controller
                   name="sku"
                   control={control}
@@ -506,7 +506,7 @@ const AddReturnPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid item xs={12} md={6}>
                 <Controller
                   name="quantity"
                   control={control}
@@ -526,7 +526,7 @@ const AddReturnPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid item xs={12} md={6}>
                 <Controller
                   name="condition"
                   control={control}
@@ -542,7 +542,7 @@ const AddReturnPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid item xs={12} md={6}>
                 <Controller
                   name="fbaFbm"
                   control={control}
@@ -555,7 +555,7 @@ const AddReturnPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid item xs={12} md={6}>
                 <Controller
                   name="removalOrderId"
                   control={control}
@@ -565,7 +565,7 @@ const AddReturnPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid item xs={12} md={6}>
                 <Controller
                   name="reason"
                   control={control}
@@ -575,7 +575,7 @@ const AddReturnPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid size={{ xs: 12 }}>
+              <Grid item xs={12}>
                 <Controller
                   name="notes"
                   control={control}
@@ -616,7 +616,7 @@ const AddReturnPage: React.FC = () => {
             <Typography variant="h6" gutterBottom>
               Product Images & Additional Notes
             </Typography>
-            
+
             <Typography variant="body2" color="text.secondary" paragraph>
               Add photos of the returned product to document its condition. You can also add them later if needed.
             </Typography>
@@ -652,7 +652,7 @@ const AddReturnPage: React.FC = () => {
             <Typography variant="h6" gutterBottom>
               Review Return Information
             </Typography>
-            
+
             {/* Review Summary */}
             <Card variant="outlined" sx={{ mb: 3 }}>
               <CardContent>
@@ -660,40 +660,40 @@ const AddReturnPage: React.FC = () => {
                   Return Summary
                 </Typography>
                 <Grid container spacing={2}>
-                  <Grid size={6}>
+                  <Grid item xs={6}>
                     <Typography variant="body2" color="text.secondary">Serial Number:</Typography>
                     <Typography variant="body1" fontFamily="monospace">{watch('serialNumber')}</Typography>
                   </Grid>
-                  <Grid size={6}>
+                  <Grid item xs={6}>
                     <Typography variant="body2" color="text.secondary">LPN Number:</Typography>
                     <Typography variant="body1" fontFamily="monospace">{watch('lpnNumber')}</Typography>
                   </Grid>
-                  <Grid size={6}>
+                  <Grid item xs={6}>
                     <Typography variant="body2" color="text.secondary">Product:</Typography>
                     <Typography variant="body1">{watch('productName')}</Typography>
                   </Grid>
-                  <Grid size={6}>
+                  <Grid item xs={6}>
                     <Typography variant="body2" color="text.secondary">SKU:</Typography>
                     <Typography variant="body1" fontFamily="monospace">{watch('sku')}</Typography>
                   </Grid>
-                  <Grid size={6}>
+                  <Grid item xs={6}>
                     <Typography variant="body2" color="text.secondary">Condition:</Typography>
                     <Chip label={watch('condition')} size="small" />
                   </Grid>
-                  <Grid size={6}>
+                  <Grid item xs={6}>
                     <Typography variant="body2" color="text.secondary">Quantity:</Typography>
                     <Typography variant="body1" fontWeight="bold">{watch('quantity')}</Typography>
                   </Grid>
-                  <Grid size={6}>
+                  <Grid item xs={6}>
                     <Typography variant="body2" color="text.secondary">Images:</Typography>
                     <Typography variant="body1">{images.length} images attached</Typography>
                   </Grid>
-                  <Grid size={6}>
+                  <Grid item xs={6}>
                     <Typography variant="body2" color="text.secondary">Product Type:</Typography>
-                    <Chip 
-                      label={isNewProduct ? 'New Product' : 'Existing Product'} 
+                    <Chip
+                      label={isNewProduct ? 'New Product' : 'Existing Product'}
                       color={isNewProduct ? 'warning' : 'success'}
-                      size="small" 
+                      size="small"
                     />
                   </Grid>
                 </Grid>
@@ -786,8 +786,8 @@ const AddReturnPage: React.FC = () => {
 
       {/* Success Alert */}
       {success && (
-        <Alert 
-          severity="success" 
+        <Alert
+          severity="success"
           sx={{ mb: 3 }}
           action={
             <Button
@@ -817,7 +817,7 @@ const AddReturnPage: React.FC = () => {
 
       {/* Main Content */}
       <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 8 }}>
+        <Grid item xs={12} md={8}>
           <Card>
             <CardContent>
               <Stepper activeStep={activeStep} orientation="vertical">
@@ -838,7 +838,7 @@ const AddReturnPage: React.FC = () => {
         </Grid>
 
         {/* Sidebar */}
-        <Grid size={{ xs: 12, md: 4 }}>
+        <Grid item xs={12} md={4}>
           {/* Return Process Guidelines */}
           <Card sx={{ mb: 3 }}>
             <CardContent>
@@ -884,7 +884,7 @@ const AddReturnPage: React.FC = () => {
                       sx={{ mt: 1 }}
                     />
                   </Paper>
-                  
+
                   {serialNumberValidation?.exists && (
                     <Box>
                       <Typography variant="body2" color="text.secondary">
@@ -944,23 +944,23 @@ const AddReturnPage: React.FC = () => {
                 {serialNumberValidation.batch.productName}
               </Typography>
               <Grid container spacing={2}>
-                <Grid size={6}>
+                <Grid item xs={6}>
                   <Typography variant="body2" color="text.secondary">Available:</Typography>
                   <Typography variant="body1" color="success.main" fontWeight="bold">
                     {serialNumberValidation.batch.availableQuantity}
                   </Typography>
                 </Grid>
-                <Grid size={6}>
+                <Grid item xs={6}>
                   <Typography variant="body2" color="text.secondary">Source:</Typography>
                   <Typography variant="body1">{serialNumberValidation.batch.source}</Typography>
                 </Grid>
-                <Grid size={12}>
+                <Grid item xs={12}>
                   <Typography variant="body2" color="text.secondary">Received Date:</Typography>
                   <Typography variant="body1">
                     {format(new Date(serialNumberValidation.batch.receivedDate), 'PPpp')}
                   </Typography>
                 </Grid>
-                <Grid size={12}>
+                <Grid item xs={12}>
                   <Typography variant="body2" color="text.secondary">Notes:</Typography>
                   <Typography variant="body1">{serialNumberValidation.batch.batchNotes || 'No notes'}</Typography>
                 </Grid>
@@ -974,10 +974,10 @@ const AddReturnPage: React.FC = () => {
       </Dialog>
 
       {/* Barcode Scanner */}
-      <BarcodeScanner 
-        open={scannerOpen} 
-        onClose={() => setScannerOpen(false)} 
-        onScan={handleScanResult} 
+      <BarcodeScanner
+        open={scannerOpen}
+        onClose={() => setScannerOpen(false)}
+        onScan={handleScanResult}
         title="Scan Serial Number"
         description="Position the serial number barcode within the frame"
       />

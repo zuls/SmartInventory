@@ -61,7 +61,7 @@ export class PackageService {
     const querySnapshot = await getDocs(
       query(this.collectionRef, orderBy('receivedDate', 'desc'))
     );
-    
+
     return querySnapshot.docs.map(doc => ({
       id: doc.id,
       ...doc.data(),
@@ -71,7 +71,7 @@ export class PackageService {
   // Search packages
   async searchPackages(searchTerm: string): Promise<Package[]> {
     const allPackages = await this.getAllPackages();
-    
+
     return allPackages.filter(pkg =>
       pkg.trackingNumber.toLowerCase().includes(searchTerm.toLowerCase()) ||
       pkg.productName.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -88,17 +88,17 @@ export class PackageService {
   }> {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    
+
     const allPackages = await this.getAllPackages();
     const todayStr = today.toISOString().split('T')[0];
 
     return {
-      received: allPackages.filter(pkg => 
+      received: allPackages.filter(pkg =>
         pkg.receivedDate?.startsWith(todayStr)
       ).length,
       // NOTE: You'll need to add dispatchDate to the Package type to use this
       dispatched: 0, // Placeholder
-      ready: allPackages.filter(pkg => 
+      ready: allPackages.filter(pkg =>
         pkg.status === 'ready'
       ).length,
       total: allPackages.length,

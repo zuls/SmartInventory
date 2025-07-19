@@ -58,9 +58,9 @@ import {
 } from '@mui/icons-material';
 import { useAuth } from '../hooks/useAuth';
 import { inventoryService } from '../services/inventoryService';
-import { 
-  InventoryBatch, 
-  InventorySource, 
+import {
+  InventoryBatch,
+  InventorySource,
   SerialNumberItem,
   InventoryItemStatus,
   InventoryStats,
@@ -71,7 +71,7 @@ import QuickSerialAssignment from '../components/QuickSerialAssignment';
 const InventoryPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+
   // Data states
   const [inventorySummary, setInventorySummary] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
@@ -109,12 +109,12 @@ const InventoryPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const [summary, inventoryStats] = await Promise.all([
         inventoryService.getInventorySummaryBySKU(),
         inventoryService.getInventoryStats(),
       ]);
-      
+
       setInventorySummary(summary);
       setStats(inventoryStats);
     } catch (err) {
@@ -131,11 +131,11 @@ const InventoryPage: React.FC = () => {
 
   // Filter inventory based on current filters
   const filteredInventory = inventorySummary.filter(item => {
-    const matchesSearch = searchTerm === '' || 
+    const matchesSearch = searchTerm === '' ||
       item.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.productName.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesSource = sourceFilter === 'all' || 
+
+    const matchesSource = sourceFilter === 'all' ||
       (sourceFilter === 'new' && item.sources.newArrivals > 0) ||
       (sourceFilter === 'returns' && item.sources.fromReturns > 0);
 
@@ -143,7 +143,7 @@ const InventoryPage: React.FC = () => {
       (serialNumberFilter === 'with_serial' && item.itemsWithSerialNumbers > 0) ||
       (serialNumberFilter === 'without_serial' && item.itemsWithoutSerialNumbers > 0) ||
       (serialNumberFilter === 'partial' && item.itemsWithSerialNumbers > 0 && item.itemsWithoutSerialNumbers > 0);
-    
+
     return matchesSearch && matchesSource && matchesSerialFilter;
   });
 
@@ -167,7 +167,7 @@ const InventoryPage: React.FC = () => {
       serialNumbersAssigned: batch.itemsWithSerialNumbers || 0,
       serialNumbersUnassigned: batch.itemsWithoutSerialNumbers || 0,
     };
-    
+
     setSelectedBatch(inventoryBatch);
     setShowSerialAssignmentDialog(true);
   };
@@ -182,7 +182,7 @@ const InventoryPage: React.FC = () => {
     try {
       const batchId = batch.batches[0]?.id;
       if (!batchId) return;
-      
+
       const items = await inventoryService.getItemsByBatchId(batchId);
       setBatchItems(items);
       setSelectedBatch(batch.batches[0]);
@@ -295,7 +295,7 @@ const InventoryPage: React.FC = () => {
 
       {/* Stats Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+        <Grid item xs={12} sm={6} md={2.4}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -312,8 +312,8 @@ const InventoryPage: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-        
-        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+
+        <Grid item xs={12} sm={6} md={2.4}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -330,8 +330,8 @@ const InventoryPage: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-        
-        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+
+        <Grid item xs={12} sm={6} md={2.4}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -348,8 +348,8 @@ const InventoryPage: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-        
-        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+
+        <Grid item xs={12} sm={6} md={2.4}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -366,8 +366,8 @@ const InventoryPage: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-        
-        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+
+        <Grid item xs={12} sm={6} md={2.4}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -398,7 +398,7 @@ const InventoryPage: React.FC = () => {
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Grid container spacing={2} alignItems="center">
-            <Grid size={{ xs: 12, md: 4 }}>
+            <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
                 placeholder="Search by SKU or product name..."
@@ -413,7 +413,7 @@ const InventoryPage: React.FC = () => {
                 }}
               />
             </Grid>
-            <Grid size={{ xs: 12, md: 2 }}>
+            <Grid item xs={12} md={2}>
               <FormControl fullWidth>
                 <InputLabel>Source</InputLabel>
                 <Select
@@ -427,7 +427,7 @@ const InventoryPage: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid size={{ xs: 12, md: 3 }}>
+            <Grid item xs={12} md={3}>
               <FormControl fullWidth>
                 <InputLabel>Serial Numbers</InputLabel>
                 <Select
@@ -442,7 +442,7 @@ const InventoryPage: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid size={{ xs: 12, md: 3 }}>
+            <Grid item xs={12} md={3}>
               <Typography variant="body2" color="text.secondary">
                 Showing {filteredInventory.length} of {inventorySummary.length} products
               </Typography>
@@ -457,7 +457,7 @@ const InventoryPage: React.FC = () => {
           <Typography variant="h6" gutterBottom>
             Inventory by Product (SKU)
           </Typography>
-          
+
           <TableContainer component={Paper} variant="outlined">
             <Table>
               <TableHead>
@@ -476,7 +476,7 @@ const InventoryPage: React.FC = () => {
                     <TableCell colSpan={6} align="center" sx={{ py: 4 }}>
                       <Typography variant="body1" color="text.secondary">
                         {searchTerm || sourceFilter !== 'all' || serialNumberFilter !== 'all'
-                          ? 'No inventory items match your filters' 
+                          ? 'No inventory items match your filters'
                           : 'No inventory items found'
                         }
                       </Typography>
@@ -486,7 +486,7 @@ const InventoryPage: React.FC = () => {
                   filteredInventory.map((item) => {
                     const progress = getSerialNumberProgress(item);
                     const status = getAttentionStatus(item);
-                    
+
                     return (
                       <TableRow key={item.sku} hover>
                         <TableCell>
@@ -559,7 +559,7 @@ const InventoryPage: React.FC = () => {
                                 </IconButton>
                               </Tooltip>
                             )}
-                            
+
                             {/* Process Delivery Button */}
                             <Tooltip title="Process Delivery">
                               <IconButton
@@ -571,7 +571,7 @@ const InventoryPage: React.FC = () => {
                                 <LocalShipping />
                               </IconButton>
                             </Tooltip>
-                            
+
                             {/* View Details Button */}
                             <Tooltip title="View Details">
                               <IconButton
@@ -581,7 +581,7 @@ const InventoryPage: React.FC = () => {
                                 <Visibility />
                               </IconButton>
                             </Tooltip>
-                            
+
                             {/* More Actions Menu */}
                             <IconButton
                               size="small"
@@ -631,31 +631,31 @@ const InventoryPage: React.FC = () => {
           {selectedBatch && (
             <Box>
               <Grid container spacing={2} sx={{ mb: 3 }}>
-                <Grid size={6}>
+                <Grid item xs={6}>
                   <Typography variant="body2" color="text.secondary">SKU:</Typography>
                   <Typography variant="body1" fontFamily="monospace">{selectedBatch.sku}</Typography>
                 </Grid>
-                <Grid size={6}>
+                <Grid item xs={6}>
                   <Typography variant="body2" color="text.secondary">Total Items:</Typography>
                   <Typography variant="body1" fontWeight="bold">{selectedBatch.totalQuantity}</Typography>
                 </Grid>
-                <Grid size={6}>
+                <Grid item xs={6}>
                   <Typography variant="body2" color="text.secondary">Available:</Typography>
                   <Typography variant="body1" color="success.main" fontWeight="bold">
                     {selectedBatch.availableQuantity}
                   </Typography>
                 </Grid>
-                <Grid size={6}>
+                <Grid item xs={6}>
                   <Typography variant="body2" color="text.secondary">Delivered:</Typography>
                   <Typography variant="body1">{selectedBatch.deliveredQuantity}</Typography>
                 </Grid>
-                <Grid size={6}>
+                <Grid item xs={6}>
                   <Typography variant="body2" color="text.secondary">Serial Numbers:</Typography>
                   <Typography variant="body1">
                     {selectedBatch.serialNumbersAssigned} / {selectedBatch.totalQuantity} assigned
                   </Typography>
                 </Grid>
-                <Grid size={6}>
+                <Grid item xs={6}>
                   <Typography variant="body2" color="text.secondary">Source:</Typography>
                   <Chip
                     label={selectedBatch.source === InventorySource.NEW_ARRIVAL ? 'New Arrival' : 'From Return'}
@@ -668,7 +668,7 @@ const InventoryPage: React.FC = () => {
               <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                 Individual Items ({batchItems.length})
               </Typography>
-              
+
               <TableContainer>
                 <Table size="small">
                   <TableHead>
@@ -747,7 +747,7 @@ const InventoryPage: React.FC = () => {
           <ListItemIcon><Visibility fontSize="small" /></ListItemIcon>
           <ListItemText>View Details</ListItemText>
         </MenuItem>
-        
+
         <MenuItem onClick={() => {
           if (selectedForAction) {
             handleDelivery(selectedForAction.sku);
@@ -757,7 +757,7 @@ const InventoryPage: React.FC = () => {
           <ListItemIcon><LocalShipping fontSize="small" /></ListItemIcon>
           <ListItemText>Process Delivery</ListItemText>
         </MenuItem>
-        
+
         {selectedForAction?.itemsWithoutSerialNumbers > 0 && (
           <MenuItem onClick={() => {
             if (selectedForAction) {
@@ -769,7 +769,7 @@ const InventoryPage: React.FC = () => {
             <ListItemText>Assign Serial Numbers</ListItemText>
           </MenuItem>
         )}
-        
+
         <MenuItem onClick={() => {
           if (selectedForAction) {
             navigate(`/inventory/history/${selectedForAction.sku}`);
@@ -779,7 +779,7 @@ const InventoryPage: React.FC = () => {
           <ListItemIcon><History fontSize="small" /></ListItemIcon>
           <ListItemText>View History</ListItemText>
         </MenuItem>
-        
+
         <MenuItem onClick={() => {
           // Export functionality
           closeActionMenu();
@@ -807,7 +807,7 @@ const InventoryPage: React.FC = () => {
               startIcon={<Assignment />}
               onClick={async () => {
                 // Find first batch with unassigned serial numbers
-                const batchWithUnassigned = inventorySummary.find(item => 
+                const batchWithUnassigned = inventorySummary.find(item =>
                   item.itemsWithoutSerialNumbers > 0
                 );
                 if (batchWithUnassigned) {

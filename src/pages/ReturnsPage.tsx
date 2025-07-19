@@ -82,10 +82,10 @@ import {
 import { useAuth } from '../hooks/useAuth';
 import { returnService } from '../services/returnService';
 import { inventoryService } from '../services/inventoryService';
-import { 
-  Return, 
-  ReturnStatus, 
-  ReturnCondition, 
+import {
+  Return,
+  ReturnStatus,
+  ReturnCondition,
   SerialNumberValidation,
   InventoryItemStatus,
 } from '../types';
@@ -158,8 +158,8 @@ const QuickSerialScanner: React.FC<{
         />
 
         {validation && (
-          <Alert 
-            severity={validation.exists ? 'success' : 'warning'} 
+          <Alert
+            severity={validation.exists ? 'success' : 'warning'}
             sx={{ mt: 2 }}
           >
             {validation.exists ? (
@@ -293,7 +293,7 @@ const ReturnDecisionDialog: React.FC<{
 const ReturnsPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+
   // Data states
   const [returns, setReturns] = useState<Return[]>([]);
   const [loading, setLoading] = useState(true);
@@ -335,12 +335,12 @@ const ReturnsPage: React.FC = () => {
     try {
       setLoading(true);
       setError(null);
-      
+
       const [allReturns, returnStats] = await Promise.all([
         returnService.getAllReturns(),
         returnService.getReturnStatistics(),
       ]);
-      
+
       setReturns(allReturns);
       setStats(returnStats);
     } catch (err) {
@@ -364,13 +364,13 @@ const ReturnsPage: React.FC = () => {
       (returnItem.sku && returnItem.sku.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (returnItem.serialNumber && returnItem.serialNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
       (returnItem.removalOrderId && returnItem.removalOrderId.toLowerCase().includes(searchTerm.toLowerCase()));
-    
+
     const matchesStatus = statusFilter === 'all' || returnItem.status === statusFilter;
     const matchesCondition = conditionFilter === 'all' || returnItem.condition === conditionFilter;
-    const matchesDecision = decisionFilter === 'all' || 
+    const matchesDecision = decisionFilter === 'all' ||
       (decisionFilter === 'pending' && returnItem.returnDecision === 'pending') ||
       (decisionFilter === 'decided' && returnItem.returnDecision !== 'pending');
-    
+
     return matchesSearch && matchesStatus && matchesCondition && matchesDecision;
   });
 
@@ -419,7 +419,7 @@ const ReturnsPage: React.FC = () => {
   // Handle bulk operations
   const handleBulkMoveToInventory = async () => {
     const pendingReturns = returns.filter(r => r.returnDecision === 'pending');
-    
+
     if (pendingReturns.length === 0) {
       setError('No pending returns to process');
       return;
@@ -432,7 +432,7 @@ const ReturnsPage: React.FC = () => {
     setActionLoading(true);
     try {
       await Promise.all(
-        pendingReturns.map(ret => 
+        pendingReturns.map(ret =>
           returnService.makeReturnDecision(ret.id, 'move_to_inventory', user!.uid, 'Bulk operation')
         )
       );
@@ -575,7 +575,7 @@ const ReturnsPage: React.FC = () => {
 
       {/* Statistics Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+        <Grid item xs={12} sm={6} md={2.4}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -592,8 +592,8 @@ const ReturnsPage: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-        
-        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+
+        <Grid item xs={12} sm={6} md={2.4}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -612,8 +612,8 @@ const ReturnsPage: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-        
-        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+
+        <Grid item xs={12} sm={6} md={2.4}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -630,8 +630,8 @@ const ReturnsPage: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-        
-        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+
+        <Grid item xs={12} sm={6} md={2.4}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -648,8 +648,8 @@ const ReturnsPage: React.FC = () => {
             </CardContent>
           </Card>
         </Grid>
-        
-        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
+
+        <Grid item xs={12} sm={6} md={2.4}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -672,7 +672,7 @@ const ReturnsPage: React.FC = () => {
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Grid container spacing={2} alignItems="center">
-            <Grid size={{ xs: 12, md: 4 }}>
+            <Grid item xs={12} md={4}>
               <TextField
                 fullWidth
                 placeholder="Search by LPN, Serial #, Product, SKU..."
@@ -687,7 +687,7 @@ const ReturnsPage: React.FC = () => {
                 }}
               />
             </Grid>
-            <Grid size={{ xs: 12, md: 2 }}>
+            <Grid item xs={12} md={2}>
               <FormControl fullWidth>
                 <InputLabel>Status</InputLabel>
                 <Select
@@ -702,7 +702,7 @@ const ReturnsPage: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid size={{ xs: 12, md: 2 }}>
+            <Grid item xs={12} md={2}>
               <FormControl fullWidth>
                 <InputLabel>Condition</InputLabel>
                 <Select
@@ -717,7 +717,7 @@ const ReturnsPage: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid size={{ xs: 12, md: 2 }}>
+            <Grid item xs={12} md={2}>
               <FormControl fullWidth>
                 <InputLabel>Decision</InputLabel>
                 <Select
@@ -731,7 +731,7 @@ const ReturnsPage: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid size={{ xs: 12, md: 2 }}>
+            <Grid item xs={12} md={2}>
               {stats.pendingDecisions > 0 && (
                 <Button
                   fullWidth
@@ -757,37 +757,37 @@ const ReturnsPage: React.FC = () => {
               Return Items
             </Typography>
             <Tabs value={tabValue} onChange={(e, newValue) => setTabValue(newValue)}>
-              <Tab 
+              <Tab
                 label={
                   <Badge badgeContent={filteredReturns.length} color="primary">
                     All Returns
                   </Badge>
-                } 
+                }
               />
-              <Tab 
+              <Tab
                 label={
                   <Badge badgeContent={stats.pendingDecisions} color="warning">
                     Pending Decisions
                   </Badge>
-                } 
+                }
               />
-              <Tab 
+              <Tab
                 label={
                   <Badge badgeContent={stats.movedToInventory} color="success">
                     In Inventory
                   </Badge>
-                } 
+                }
               />
-              <Tab 
+              <Tab
                 label={
                   <Badge badgeContent={stats.keptInReturns} color="secondary">
                     Kept in Returns
                   </Badge>
-                } 
+                }
               />
             </Tabs>
           </Box>
-          
+
           <TableContainer component={Paper} variant="outlined">
             <Table>
               <TableHead>
@@ -807,9 +807,9 @@ const ReturnsPage: React.FC = () => {
                     <TableCell colSpan={7} align="center" sx={{ py: 4 }}>
                       <Typography variant="body1" color="text.secondary">
                         {searchTerm || statusFilter !== 'all' || conditionFilter !== 'all' || decisionFilter !== 'all'
-                          ? 'No returns match your filters' 
-                          : tabValue === 1 
-                            ? 'No pending decisions - great job!' 
+                          ? 'No returns match your filters'
+                          : tabValue === 1
+                            ? 'No pending decisions - great job!'
                             : 'No returns found. Click "Add Return" to get started.'
                         }
                       </Typography>
@@ -819,14 +819,14 @@ const ReturnsPage: React.FC = () => {
                   displayedReturns.map((returnItem) => {
                     const statusConfig = getStatusChip(returnItem.status);
                     const conditionConfig = getConditionChip(returnItem.condition);
-                    
+
                     return (
-                      <TableRow 
-                        key={returnItem.id} 
+                      <TableRow
+                        key={returnItem.id}
                         hover
                         sx={{
-                          backgroundColor: returnItem.status === ReturnStatus.MOVED_TO_INVENTORY 
-                            ? 'success.light' 
+                          backgroundColor: returnItem.status === ReturnStatus.MOVED_TO_INVENTORY
+                            ? 'success.light'
                             : returnItem.returnDecision === 'pending'
                               ? 'warning.light'
                               : 'inherit',
@@ -914,7 +914,7 @@ const ReturnsPage: React.FC = () => {
                                 <Visibility />
                               </IconButton>
                             </Tooltip>
-                            
+
                             {returnItem.returnDecision === 'pending' && (
                               <Tooltip title="Make Decision">
                                 <IconButton
@@ -929,7 +929,7 @@ const ReturnsPage: React.FC = () => {
                                 </IconButton>
                               </Tooltip>
                             )}
-                            
+
                             <Tooltip title="Edit Return">
                               <IconButton
                                 size="small"
@@ -938,7 +938,7 @@ const ReturnsPage: React.FC = () => {
                                 <Edit />
                               </IconButton>
                             </Tooltip>
-                            
+
                             <IconButton
                               size="small"
                               onClick={(e) => handleActionMenu(e, returnItem)}
@@ -1035,7 +1035,7 @@ const ReturnsPage: React.FC = () => {
           <ListItemIcon><Visibility fontSize="small" /></ListItemIcon>
           <ListItemText>View Details</ListItemText>
         </MenuItem>
-        
+
         <MenuItem onClick={() => {
           if (selectedReturn) {
             navigate(`/returns/${selectedReturn.id}/edit`);
@@ -1045,7 +1045,7 @@ const ReturnsPage: React.FC = () => {
           <ListItemIcon><Edit fontSize="small" /></ListItemIcon>
           <ListItemText>Edit Return</ListItemText>
         </MenuItem>
-        
+
         {selectedReturn?.returnDecision === 'pending' && (
           <MenuItem onClick={() => {
             setDecisionDialogOpen(true);
@@ -1055,7 +1055,7 @@ const ReturnsPage: React.FC = () => {
             <ListItemText>Make Decision</ListItemText>
           </MenuItem>
         )}
-        
+
         <MenuItem onClick={() => {
           if (selectedReturn?.serialNumber) {
             navigate(`/search?q=${selectedReturn.serialNumber}`);
@@ -1065,7 +1065,7 @@ const ReturnsPage: React.FC = () => {
           <ListItemIcon><Search fontSize="small" /></ListItemIcon>
           <ListItemText>Search Serial Number</ListItemText>
         </MenuItem>
-        
+
         <MenuItem onClick={() => {
           // View history functionality
           closeActionMenu();
@@ -1073,9 +1073,9 @@ const ReturnsPage: React.FC = () => {
           <ListItemIcon><History fontSize="small" /></ListItemIcon>
           <ListItemText>View History</ListItemText>
         </MenuItem>
-        
+
         <Divider />
-        
+
         <MenuItem onClick={() => {
           if (selectedReturn && confirm('Are you sure you want to delete this return?')) {
             // Delete functionality
@@ -1110,7 +1110,7 @@ const ReturnsPage: React.FC = () => {
           {selectedReturn && (
             <Grid container spacing={3}>
               {/* Return Information */}
-              <Grid size={12}>
+              <Grid item xs={12}>
                 <Accordion defaultExpanded>
                   <AccordionSummary expandIcon={<ExpandMore />}>
                     <Typography variant="subtitle1" fontWeight="bold">
@@ -1119,35 +1119,35 @@ const ReturnsPage: React.FC = () => {
                   </AccordionSummary>
                   <AccordionDetails>
                     <Grid container spacing={2}>
-                      <Grid size={6}>
+                      <Grid item xs={6}>
                         <Typography variant="caption" color="text.secondary">LPN Number</Typography>
                         <Typography variant="body1" fontFamily="monospace" fontWeight="bold">
                           {selectedReturn.lpnNumber}
                         </Typography>
                       </Grid>
-                      <Grid size={6}>
+                      <Grid item xs={6}>
                         <Typography variant="caption" color="text.secondary">Tracking Number</Typography>
                         <Typography variant="body1" fontFamily="monospace">
                           {selectedReturn.trackingNumber}
                         </Typography>
                       </Grid>
-                      <Grid size={6}>
+                      <Grid item xs={6}>
                         <Typography variant="caption" color="text.secondary">Serial Number</Typography>
                         <Typography variant="body1" fontFamily="monospace">
                           {selectedReturn.serialNumber || 'Not provided'}
                         </Typography>
                       </Grid>
-                      <Grid size={6}>
+                      <Grid item xs={6}>
                         <Typography variant="caption" color="text.secondary">Product Name</Typography>
                         <Typography variant="body1">{selectedReturn.productName}</Typography>
                       </Grid>
-                      <Grid size={6}>
+                      <Grid item xs={6}>
                         <Typography variant="caption" color="text.secondary">SKU</Typography>
                         <Typography variant="body1" fontFamily="monospace">
                           {selectedReturn.sku || 'Not provided'}
                         </Typography>
                       </Grid>
-                      <Grid size={6}>
+                      <Grid item xs={6}>
                         <Typography variant="caption" color="text.secondary">Condition</Typography>
                         <Chip
                           label={selectedReturn.condition}
@@ -1156,29 +1156,29 @@ const ReturnsPage: React.FC = () => {
                           icon={getConditionChip(selectedReturn.condition).icon}
                         />
                       </Grid>
-                      <Grid size={6}>
+                      <Grid item xs={6}>
                         <Typography variant="caption" color="text.secondary">Quantity</Typography>
                         <Typography variant="body1" fontWeight="bold">
                           {selectedReturn.quantity}
                         </Typography>
                       </Grid>
-                      <Grid size={6}>
+                      <Grid item xs={6}>
                         <Typography variant="caption" color="text.secondary">FBA/FBM</Typography>
                         <Typography variant="body1">{selectedReturn.fbaFbm || 'Not specified'}</Typography>
                       </Grid>
-                      <Grid size={6}>
+                      <Grid item xs={6}>
                         <Typography variant="caption" color="text.secondary">Removal Order ID</Typography>
                         <Typography variant="body1" fontFamily="monospace">
                           {selectedReturn.removalOrderId || 'Not provided'}
                         </Typography>
                       </Grid>
-                      <Grid size={6}>
+                      <Grid item xs={6}>
                         <Typography variant="caption" color="text.secondary">Received Date</Typography>
                         <Typography variant="body1">
                           {format(new Date(selectedReturn.receivedDate), 'PPpp')}
                         </Typography>
                       </Grid>
-                      <Grid size={6}>
+                      <Grid item xs={6}>
                         <Typography variant="caption" color="text.secondary">Received By</Typography>
                         <Typography variant="body1">{selectedReturn.receivedBy}</Typography>
                       </Grid>
@@ -1189,7 +1189,7 @@ const ReturnsPage: React.FC = () => {
 
               {/* Decision Information */}
               {selectedReturn.returnDecision !== 'pending' && (
-                <Grid size={12}>
+                <Grid item xs={12}>
                   <Accordion>
                     <AccordionSummary expandIcon={<ExpandMore />}>
                       <Typography variant="subtitle1" fontWeight="bold">
@@ -1198,26 +1198,26 @@ const ReturnsPage: React.FC = () => {
                     </AccordionSummary>
                     <AccordionDetails>
                       <Grid container spacing={2}>
-                        <Grid size={6}>
+                        <Grid item xs={6}>
                           <Typography variant="caption" color="text.secondary">Decision</Typography>
                           <Typography variant="body1">
                             {selectedReturn.returnDecision === 'move_to_inventory' ? 'Moved to Inventory' : 'Kept in Returns'}
                           </Typography>
                         </Grid>
-                        <Grid size={6}>
+                        <Grid item xs={6}>
                           <Typography variant="caption" color="text.secondary">Decision Date</Typography>
                           <Typography variant="body1">
-                            {selectedReturn.returnDecisionDate 
+                            {selectedReturn.returnDecisionDate
                               ? format(new Date(selectedReturn.returnDecisionDate), 'PPpp')
                               : 'Not available'
                             }
                           </Typography>
                         </Grid>
-                        <Grid size={6}>
+                        <Grid item xs={6}>
                           <Typography variant="caption" color="text.secondary">Decision By</Typography>
                           <Typography variant="body1">{selectedReturn.returnDecisionBy || 'Not available'}</Typography>
                         </Grid>
-                        <Grid size={12}>
+                        <Grid item xs={12}>
                           <Typography variant="caption" color="text.secondary">Decision Notes</Typography>
                           <Typography variant="body1">
                             {selectedReturn.returnDecisionNotes || 'No notes provided'}
@@ -1231,7 +1231,7 @@ const ReturnsPage: React.FC = () => {
 
               {/* Remarks/Notes */}
               {selectedReturn.notes && (
-                <Grid size={12}>
+                <Grid item xs={12}>
                   <Accordion>
                     <AccordionSummary expandIcon={<ExpandMore />}>
                       <Typography variant="subtitle1" fontWeight="bold">
@@ -1248,7 +1248,7 @@ const ReturnsPage: React.FC = () => {
               )}
 
               {/* Images Section */}
-              <Grid size={12}>
+              <Grid item xs={12}>
                 <Accordion defaultExpanded>
                   <AccordionSummary expandIcon={<ExpandMore />}>
                     <Typography variant="subtitle1" fontWeight="bold">
@@ -1260,7 +1260,7 @@ const ReturnsPage: React.FC = () => {
                       {selectedReturn.driveFiles && selectedReturn.driveFiles.length > 0 ? (
                         <Grid container spacing={2}>
                           {selectedReturn.driveFiles.map((file, index) => (
-                            <Grid size={3} key={file.fileId}>
+                            <Grid item xs={3} key={file.fileId}>
                               <Card sx={{ cursor: 'pointer' }}>
                                 {file.fileId.startsWith('mock_file_') ? (
                                   <Box

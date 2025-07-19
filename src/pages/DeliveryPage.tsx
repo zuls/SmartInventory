@@ -58,10 +58,10 @@ import * as yup from 'yup';
 import { ObjectSchema } from 'yup';
 import { useAuth } from '../hooks/useAuth';
 import { inventoryService } from '../services/inventoryService';
-import { 
-  DeliveryForm, 
-  Carrier, 
-  InventoryBatch, 
+import {
+  DeliveryForm,
+  Carrier,
+  InventoryBatch,
   SerialNumberItem,
   InventoryItemStatus,
   DeliveryWithSerialNumber,
@@ -102,38 +102,38 @@ const DeliveryPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { user } = useAuth();
-  
+
   // Get SKU from URL params if navigated from inventory
   const urlParams = new URLSearchParams(location.search);
   const preSelectedSKU = urlParams.get('sku');
-  
+
   // Form and UI states
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [activeStep, setActiveStep] = useState(0);
   const [deliveryResult, setDeliveryResult] = useState<DeliveryWithSerialNumber | null>(null);
-  
+
   // Inventory states
   const [availableProducts, setAvailableProducts] = useState<any[]>([]);
   const [selectedProduct, setSelectedProduct] = useState<any>(null);
   const [availableItems, setAvailableItems] = useState<SerialNumberItem[]>([]);
   const [selectedItem, setSelectedItem] = useState<SerialNumberItem | null>(null);
   const [inventoryLoading, setInventoryLoading] = useState(false);
-  
+
   // Serial number states
   const [newSerialNumber, setNewSerialNumber] = useState('');
   const [serialNumberValidation, setSerialNumberValidation] = useState<{ valid: boolean; error?: string } | null>(null);
   const [serialNumberLoading, setSerialNumberLoading] = useState(false);
-  
+
   // Scanner states
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scanType, setScanType] = useState<'label' | 'tracking' | 'serial'>('label');
-  
+
   // Dialog states
   const [productSelectionOpen, setProductSelectionOpen] = useState(false);
   const [itemSelectionOpen, setItemSelectionOpen] = useState(false);
-  
+
   // Search states
   const [searchSKU, setSearchSKU] = useState(preSelectedSKU || '');
 
@@ -185,7 +185,7 @@ const DeliveryPage: React.FC = () => {
     if (watchedItemId) {
       const item = availableItems.find(i => i.id === watchedItemId);
       setSelectedItem(item || null);
-      
+
       if (item?.serialNumber) {
         setValue('productSerialNumber', item.serialNumber);
       } else {
@@ -206,7 +206,7 @@ const DeliveryPage: React.FC = () => {
         products = summary.filter(item => item.totalAvailable > 0);
       }
       setAvailableProducts(products);
-      
+
       // Auto-select if pre-selected SKU and only one result
       if (preSelectedSKU && products.length === 1) {
         handleProductSelection(products[0]);
@@ -221,12 +221,12 @@ const DeliveryPage: React.FC = () => {
 
   const loadProductItems = async () => {
     if (!selectedProduct) return;
-    
+
     setInventoryLoading(true);
     try {
       const items = await inventoryService.getAvailableItemsForDelivery(selectedProduct.sku);
       setAvailableItems(items);
-      
+
       // Auto-select first item if only one available
       if (items.length === 1) {
         setSelectedItem(items[0]);
@@ -253,7 +253,7 @@ const DeliveryPage: React.FC = () => {
     setSelectedItem(item);
     setValue('selectedItemId', item.id);
     setItemSelectionOpen(false);
-    
+
     if (item.serialNumber) {
       setValue('productSerialNumber', item.serialNumber);
       setActiveStep(2);
@@ -272,7 +272,7 @@ const DeliveryPage: React.FC = () => {
     setSerialNumberLoading(true);
     try {
       const validation = await inventoryService.validateSerialNumber(serialNumber);
-      
+
       if (validation.exists) {
         setSerialNumberValidation({
           valid: false,
@@ -326,11 +326,11 @@ const DeliveryPage: React.FC = () => {
       };
 
       const result = await inventoryService.deliverItemWithSerialNumber(deliveryData, user.uid);
-      
+
       setDeliveryResult(result);
       setSuccess(true);
       setActiveStep(4); // Move to success step
-      
+
       // Reset form after delay
       setTimeout(() => {
         reset();
@@ -343,7 +343,7 @@ const DeliveryPage: React.FC = () => {
         setSuccess(false);
         setDeliveryResult(null);
       }, 5000);
-      
+
     } catch (error) {
       console.error('Error processing delivery:', error);
       setError(error instanceof Error ? error.message : 'Failed to process delivery');
@@ -418,9 +418,9 @@ const DeliveryPage: React.FC = () => {
             <Typography variant="h6" gutterBottom>
               Select Product for Delivery
             </Typography>
-            
+
             <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid size={{ xs: 12, md: 8 }}>
+              <Grid item xs={12} md={8}>
                 <TextField
                   fullWidth
                   label="Search by SKU"
@@ -432,7 +432,7 @@ const DeliveryPage: React.FC = () => {
                   }}
                 />
               </Grid>
-              <Grid size={{ xs: 12, md: 4 }}>
+              <Grid item xs={12} md={4}>
                 <Button
                   variant="outlined"
                   onClick={() => setProductSelectionOpen(true)}
@@ -454,15 +454,15 @@ const DeliveryPage: React.FC = () => {
                     Selected Product
                   </Typography>
                   <Grid container spacing={2}>
-                    <Grid size={4}>
+                    <Grid item xs={4}>
                       <Typography variant="body2" color="text.secondary">Product:</Typography>
                       <Typography variant="body1">{selectedProduct.productName}</Typography>
                     </Grid>
-                    <Grid size={4}>
+                    <Grid item xs={4}>
                       <Typography variant="body2" color="text.secondary">SKU:</Typography>
                       <Typography variant="body1" fontFamily="monospace">{selectedProduct.sku}</Typography>
                     </Grid>
-                    <Grid size={4}>
+                    <Grid item xs={4}>
                       <Typography variant="body2" color="text.secondary">Available:</Typography>
                       <Typography variant="body1" color="success.main" fontWeight="bold">
                         {selectedProduct.totalAvailable || selectedProduct.availableQuantity}
@@ -499,7 +499,7 @@ const DeliveryPage: React.FC = () => {
             <Typography variant="h6" gutterBottom>
               Select Specific Item
             </Typography>
-            
+
             <Alert severity="info" sx={{ mb: 3 }}>
               <Typography variant="body2">
                 Choose a specific item from the selected product. Items with serial numbers are ready for delivery.
@@ -512,7 +512,7 @@ const DeliveryPage: React.FC = () => {
                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                   Available Items ({availableItems.length})
                 </Typography>
-                
+
                 {availableItems.length === 0 ? (
                   <Alert severity="warning">
                     <Typography variant="body2">
@@ -595,7 +595,7 @@ const DeliveryPage: React.FC = () => {
             <Typography variant="h6" gutterBottom>
               Serial Number Management
             </Typography>
-            
+
             {selectedItem && (
               <Card variant="outlined" sx={{ mb: 3 }}>
                 <CardContent>
@@ -603,11 +603,11 @@ const DeliveryPage: React.FC = () => {
                     Selected Item
                   </Typography>
                   <Grid container spacing={2}>
-                    <Grid size={6}>
+                    <Grid item xs={6}>
                       <Typography variant="body2" color="text.secondary">Product:</Typography>
                       <Typography variant="body1">{selectedProduct?.productName}</Typography>
                     </Grid>
-                    <Grid size={6}>
+                    <Grid item xs={6}>
                       <Typography variant="body2" color="text.secondary">Current Serial:</Typography>
                       <Typography variant="body1" fontFamily="monospace">
                         {selectedItem.serialNumber || 'Not assigned'}
@@ -624,7 +624,7 @@ const DeliveryPage: React.FC = () => {
                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                   Serial Number Assignment
                 </Typography>
-                
+
                 {selectedItem?.serialNumber ? (
                   <Box>
                     <Alert severity="success" sx={{ mb: 2 }}>
@@ -643,9 +643,9 @@ const DeliveryPage: React.FC = () => {
                         <strong>Serial number required:</strong> This item needs a serial number before delivery.
                       </Typography>
                     </Alert>
-                    
+
                     <Grid container spacing={2}>
-                      <Grid size={{ xs: 12, md: 6 }}>
+                      <Grid item xs={12} md={6}>
                         <TextField
                           fullWidth
                           label="Assign Serial Number *"
@@ -669,7 +669,7 @@ const DeliveryPage: React.FC = () => {
                           }}
                         />
                       </Grid>
-                      <Grid size={{ xs: 12, md: 3 }}>
+                      <Grid item xs={12} md={3}>
                         <Button
                           variant="outlined"
                           onClick={autoAssignSerialNumber}
@@ -711,9 +711,9 @@ const DeliveryPage: React.FC = () => {
             <Typography variant="h6" gutterBottom>
               Shipping Information
             </Typography>
-            
+
             <Grid container spacing={3}>
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid item xs={12} md={6}>
                 <Controller
                   name="shippingLabelData.labelNumber"
                   control={control}
@@ -737,7 +737,7 @@ const DeliveryPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid item xs={12} md={6}>
                 <Controller
                   name="shippingLabelData.carrier"
                   control={control}
@@ -760,7 +760,7 @@ const DeliveryPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid item xs={12} md={6}>
                 <Controller
                   name="shippingLabelData.trackingNumber"
                   control={control}
@@ -782,7 +782,7 @@ const DeliveryPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid item xs={12} md={6}>
                 <Controller
                   name="shippingLabelData.destination"
                   control={control}
@@ -799,13 +799,13 @@ const DeliveryPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid size={{ xs: 12 }}>
+              <Grid item xs={12}>
                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                   Customer Information (Optional)
                 </Typography>
               </Grid>
 
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid item xs={12} md={6}>
                 <Controller
                   name="customerInfo.name"
                   control={control}
@@ -820,7 +820,7 @@ const DeliveryPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid item xs={12} md={6}>
                 <Controller
                   name="customerInfo.email"
                   control={control}
@@ -838,7 +838,7 @@ const DeliveryPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid item xs={12} md={6}>
                 <Controller
                   name="customerInfo.phone"
                   control={control}
@@ -853,7 +853,7 @@ const DeliveryPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid size={{ xs: 12 }}>
+              <Grid item xs={12}>
                 <Controller
                   name="customerInfo.address"
                   control={control}
@@ -895,7 +895,7 @@ const DeliveryPage: React.FC = () => {
             <Typography variant="h6" gutterBottom>
               Review & Complete Delivery
             </Typography>
-            
+
             {/* Delivery Summary */}
             <Card variant="outlined" sx={{ mb: 3 }}>
               <CardContent>
@@ -903,7 +903,7 @@ const DeliveryPage: React.FC = () => {
                   Delivery Summary
                 </Typography>
                 <Grid container spacing={2}>
-                  <Grid size={6}>
+                  <Grid item xs={6}>
                     <Typography variant="body2" color="text.secondary">Tracking:</Typography>
                     <Typography variant="body1">{watch('shippingLabelData.trackingNumber') || 'Not provided'}</Typography>
                   </Grid>
@@ -990,8 +990,8 @@ const DeliveryPage: React.FC = () => {
 
       {/* Success Alert */}
       {success && deliveryResult && (
-        <Alert 
-          severity="success" 
+        <Alert
+          severity="success"
           sx={{ mb: 3 }}
           action={
             <Box display="flex" gap={1}>
@@ -1030,7 +1030,7 @@ const DeliveryPage: React.FC = () => {
 
       {/* Main Content */}
       <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 8 }}>
+        <Grid item xs={12} md={8}>
           <Card>
             <CardContent>
               <Stepper activeStep={activeStep} orientation="vertical">
@@ -1051,7 +1051,7 @@ const DeliveryPage: React.FC = () => {
         </Grid>
 
         {/* Sidebar */}
-        <Grid size={{ xs: 12, md: 4 }}>
+        <Grid item xs={12} md={4}>
           {/* Delivery Guidelines */}
           <Card sx={{ mb: 3 }}>
             <CardContent>
@@ -1085,7 +1085,7 @@ const DeliveryPage: React.FC = () => {
                 <Typography variant="h6" gutterBottom>
                   Current Selection
                 </Typography>
-                
+
                 {selectedProduct && (
                   <Box mb={2}>
                     <Typography variant="body2" color="text.secondary">Product:</Typography>
@@ -1168,7 +1168,7 @@ const DeliveryPage: React.FC = () => {
           <Typography variant="body2" color="text.secondary" gutterBottom>
             Choose a product that has available items for delivery
           </Typography>
-          
+
           <TableContainer sx={{ mt: 2 }}>
             <Table>
               <TableHead>

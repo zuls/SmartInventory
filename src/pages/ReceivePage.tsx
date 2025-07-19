@@ -88,7 +88,7 @@ interface CreatedInventoryResult {
 const ReceivePage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  
+
   // Form and UI states
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
@@ -96,14 +96,14 @@ const ReceivePage: React.FC = () => {
   const [activeStep, setActiveStep] = useState(0);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [scanType, setScanType] = useState<'tracking' | 'barcode'>('tracking');
-  
+
   // Bulk receiving states
   const [previewMode, setPreviewMode] = useState(false);
   const [createdInventory, setCreatedInventory] = useState<CreatedInventoryResult | null>(null);
   const [serialNumbersInput, setSerialNumbersInput] = useState<string[]>([]);
   const [serialNumberMode, setSerialNumberMode] = useState<'none' | 'partial' | 'bulk'>('none');
   const [showSerialNumberDialog, setShowSerialNumberDialog] = useState(false);
-  
+
   // Recent packages for reference
   const [recentPackages, setRecentPackages] = useState<any[]>([]);
 
@@ -149,9 +149,9 @@ const ReceivePage: React.FC = () => {
     if (serialNumberMode === 'bulk' && watchedQuantity) {
       const currentSerialNumbers = serialNumbersInput;
       const newLength = watchedQuantity;
-      
+
       if (currentSerialNumbers.length !== newLength) {
-        const updatedSerialNumbers = Array(newLength).fill('').map((_, index) => 
+        const updatedSerialNumbers = Array(newLength).fill('').map((_, index) =>
           currentSerialNumbers[index] || ''
         );
         setSerialNumbersInput(updatedSerialNumbers);
@@ -204,7 +204,7 @@ const ReceivePage: React.FC = () => {
 
       setSuccess(true);
       setActiveStep(2); // Move to success step
-      
+
       // Reset form after delay
       setTimeout(() => {
         reset();
@@ -214,7 +214,7 @@ const ReceivePage: React.FC = () => {
         setActiveStep(0);
         setSuccess(false);
       }, 5000);
-      
+
     } catch (err) {
       console.error('Error creating package:', err);
       setError(err instanceof Error ? err.message : 'Failed to create package');
@@ -302,9 +302,9 @@ const ReceivePage: React.FC = () => {
             <Typography variant="h6" gutterBottom>
               Product Information
             </Typography>
-            
+
             <Grid container spacing={3}>
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid item xs={12} md={6}>
                 <Controller
                   name="trackingNumber"
                   control={control}
@@ -327,7 +327,7 @@ const ReceivePage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid item xs={12} md={6}>
                 <Controller
                   name="carrier"
                   control={control}
@@ -350,7 +350,7 @@ const ReceivePage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid size={{ xs: 12 }}>
+              <Grid item xs={12}>
                 <Controller
                   name="productName"
                   control={control}
@@ -365,8 +365,8 @@ const ReceivePage: React.FC = () => {
                   )}
                 />
               </Grid>
-              
-              <Grid size={{ xs: 12, md: 8 }}>
+
+              <Grid item xs={12} md={8}>
                 <Controller
                   name="sku"
                   control={control}
@@ -390,7 +390,7 @@ const ReceivePage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, md: 4 }}>
+              <Grid item xs={12} md={4}>
                 <Button
                   variant="outlined"
                   onClick={generateSKU}
@@ -402,7 +402,7 @@ const ReceivePage: React.FC = () => {
                 </Button>
               </Grid>
 
-              <Grid size={{ xs: 12 }}>
+              <Grid item xs={12}>
                 <Controller
                   name="notes"
                   control={control}
@@ -445,9 +445,9 @@ const ReceivePage: React.FC = () => {
             <Typography variant="h6" gutterBottom>
               Quantity & Serial Numbers
             </Typography>
-            
+
             <Grid container spacing={3}>
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid item xs={12} md={6}>
                 <Controller
                   name="quantity"
                   control={control}
@@ -467,7 +467,7 @@ const ReceivePage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid size={{ xs: 12, md: 6 }}>
+              <Grid item xs={12} md={6}>
                 <TextField
                   select
                   fullWidth
@@ -484,7 +484,7 @@ const ReceivePage: React.FC = () => {
 
               {/* Serial Number Input Section */}
               {serialNumberMode !== 'none' && (
-                <Grid size={{ xs: 12 }}>
+                <Grid item xs={12}>
                   <Card variant="outlined">
                     <CardContent>
                       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
@@ -500,7 +500,7 @@ const ReceivePage: React.FC = () => {
 
                       <Grid container spacing={2}>
                         {serialNumbersInput.map((serialNumber, index) => (
-                          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
+                          <Grid item xs={12} sm={6} md={4} key={index}>
                             <TextField
                               fullWidth
                               size="small"
@@ -542,10 +542,10 @@ const ReceivePage: React.FC = () => {
               )}
 
               {/* Information Cards */}
-              <Grid size={{ xs: 12 }}>
+              <Grid item xs={12}>
                 <Alert severity="info" icon={<Info />}>
                   <Typography variant="body2">
-                    <strong>Serial Numbers:</strong> You can assign serial numbers now or later. 
+                    <strong>Serial Numbers:</strong> You can assign serial numbers now or later.
                     Items without serial numbers can be assigned during delivery or through the inventory management page.
                   </Typography>
                 </Alert>
@@ -575,7 +575,7 @@ const ReceivePage: React.FC = () => {
             <Typography variant="h6" gutterBottom>
               Review & Create Inventory
             </Typography>
-            
+
             {/* Summary Card */}
             <Card variant="outlined" sx={{ mb: 3 }}>
               <CardContent>
@@ -583,29 +583,29 @@ const ReceivePage: React.FC = () => {
                   Package Summary
                 </Typography>
                 <Grid container spacing={2}>
-                  <Grid size={6}>
+                  <Grid item xs={6}>
                     <Typography variant="body2" color="text.secondary">Product:</Typography>
                     <Typography variant="body1">{watchedProductName}</Typography>
                   </Grid>
-                  <Grid size={6}>
+                  <Grid item xs={6}>
                     <Typography variant="body2" color="text.secondary">SKU:</Typography>
                     <Typography variant="body1" fontFamily="monospace">{watchedSku}</Typography>
                   </Grid>
-                  <Grid size={6}>
+                  <Grid item xs={6}>
                     <Typography variant="body2" color="text.secondary">Tracking:</Typography>
                     <Typography variant="body1" fontFamily="monospace">{watch('trackingNumber')}</Typography>
                   </Grid>
-                  <Grid size={6}>
+                  <Grid item xs={6}>
                     <Typography variant="body2" color="text.secondary">Carrier:</Typography>
                     <Typography variant="body1">{watch('carrier')}</Typography>
                   </Grid>
-                  <Grid size={6}>
+                  <Grid item xs={6}>
                     <Typography variant="body2" color="text.secondary">Total Items:</Typography>
                     <Typography variant="h6" color="primary.main" fontWeight="bold">
                       {watchedQuantity}
                     </Typography>
                   </Grid>
-                  <Grid size={6}>
+                  <Grid item xs={6}>
                     <Typography variant="body2" color="text.secondary">Serial Numbers:</Typography>
                     <Box display="flex" gap={1}>
                       <Chip
@@ -703,8 +703,8 @@ const ReceivePage: React.FC = () => {
 
       {/* Success Alert */}
       {success && createdInventory && (
-        <Alert 
-          severity="success" 
+        <Alert
+          severity="success"
           sx={{ mb: 3 }}
           action={
             <Box display="flex" gap={1}>
@@ -743,7 +743,7 @@ const ReceivePage: React.FC = () => {
 
       {/* Main Content */}
       <Grid container spacing={3}>
-        <Grid size={{ xs: 12, md: 8 }}>
+        <Grid item xs={12} md={8}>
           <Card>
             <CardContent>
               <Stepper activeStep={activeStep} orientation="vertical">
@@ -764,7 +764,7 @@ const ReceivePage: React.FC = () => {
         </Grid>
 
         {/* Sidebar */}
-        <Grid size={{ xs: 12, md: 4 }}>
+        <Grid item xs={12} md={4}>
           {/* Guidelines */}
           <Card sx={{ mb: 3 }}>
             <CardContent>
@@ -847,7 +847,7 @@ const ReceivePage: React.FC = () => {
                 .map(s => s.trim())
                 .filter(s => s !== '')
                 .slice(0, watchedQuantity);
-              
+
               const updated = Array(watchedQuantity).fill('');
               values.forEach((value, index) => {
                 if (index < updated.length) {

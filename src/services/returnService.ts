@@ -16,11 +16,11 @@ import {
   writeBatch,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { 
-  Return, 
-  ReturnForm, 
-  ReturnStatus, 
-  ReturnCondition, 
+import {
+  Return,
+  ReturnForm,
+  ReturnStatus,
+  ReturnCondition,
   DriveFileReference,
   SerialNumberItem,
   InventoryItemStatus,
@@ -48,7 +48,7 @@ export class ReturnService {
   // Get detailed return information with serial number lookup
   async getReturnInfoBySerialNumber(serialNumber: string): Promise<ReturnWithSerialNumber | null> {
     const validation = await this.validateSerialNumberForReturn(serialNumber);
-    
+
     if (!validation.exists || !validation.item) {
       return null;
     }
@@ -58,7 +58,7 @@ export class ReturnService {
 
     // Check if this item has delivery history
     const deliveryHistory = await inventoryService.getDeliveryHistoryForItem(item.id);
-    
+
     // Get any existing return records for this item
     const existingReturns = await this.getReturnsByItemId(item.id);
 
@@ -88,7 +88,7 @@ export class ReturnService {
     currentStatus?: InventoryItemStatus;
   }> {
     const validation = await this.validateSerialNumberForReturn(serialNumber);
-    
+
     if (!validation.exists || !validation.item) {
       return {
         canReturn: false,
@@ -97,7 +97,7 @@ export class ReturnService {
     }
 
     const item = validation.item;
-    
+
     // Check if item is already returned
     if (item.status === InventoryItemStatus.RETURNED) {
       return {
@@ -164,7 +164,7 @@ export class ReturnService {
     }
 
     const item = canReturn.item!;
-    
+
     return runTransaction(db, async (transaction) => {
       // Create return record
       const returnData: Omit<Return, 'id'> = {
@@ -195,7 +195,7 @@ export class ReturnService {
       // Update batch quantities
       const batchRef = doc(this.inventoryCollection, item.batchId);
       const batchDoc = await transaction.get(batchRef);
-      
+
       if (batchDoc.exists()) {
         const batch = batchDoc.data() as InventoryBatch;
         const updates: Partial<InventoryBatch> = {};
@@ -337,18 +337,18 @@ export class ReturnService {
         referenceId: returnRef.id,
       });
 
-      return { 
-        returnId: returnRef.id, 
-        batchId: batchRef.id, 
-        itemId: itemRef.id 
+      return {
+        returnId: returnRef.id,
+        batchId: batchRef.id,
+        itemId: itemRef.id
       };
     });
   }
 
   // Legacy create return method (for backward compatibility)
   async createReturn(
-    formData: ReturnForm, 
-    userId: string, 
+    formData: ReturnForm,
+    userId: string,
     driveFiles: DriveFileReference[] = []
   ): Promise<string> {
     if (formData.serialNumber) {
@@ -376,7 +376,7 @@ export class ReturnService {
         ...returnData,
         receivedDate: Timestamp.now(),
       });
-      
+
       return docRef.id;
     }
   }
@@ -393,13 +393,13 @@ export class ReturnService {
     return runTransaction(db, async (transaction) => {
       const returnRef = doc(this.returnsCollection, returnId);
       const returnDoc = await transaction.get(returnRef);
-      
+
       if (!returnDoc.exists()) {
         throw new Error('Return not found');
       }
 
       const returnData = returnDoc.data() as Return;
-      
+
       if (returnData.returnDecision !== 'pending') {
         throw new Error('Return decision has already been made');
       }
@@ -430,7 +430,7 @@ export class ReturnService {
           const item = itemDoc.data() as SerialNumberItem;
           const batchRef = doc(this.inventoryCollection, item.batchId);
           const batchDoc = await transaction.get(batchRef);
-          
+
           if (batchDoc.exists()) {
             const batch = batchDoc.data() as InventoryBatch;
             transaction.update(batchRef, {
@@ -484,7 +484,7 @@ export class ReturnService {
     const querySnapshot = await getDocs(
       query(this.returnsCollection, orderBy('receivedDate', 'desc'))
     );
-    
+
     return querySnapshot.docs.map(doc => this.mapDocToReturn(doc)) as Return[];
   }
 
@@ -492,11 +492,11 @@ export class ReturnService {
   async getReturnById(id: string): Promise<Return | null> {
     const docRef = doc(this.returnsCollection, id);
     const docSnap = await getDoc(docRef);
-    
+
     if (docSnap.exists()) {
       return this.mapDocToReturn(docSnap);
     }
-    
+
     return null;
   }
 
@@ -566,7 +566,7 @@ export class ReturnService {
   async searchReturns(searchTerm: string): Promise<Return[]> {
     const allReturns = await this.getAllReturns();
     const term = searchTerm.toLowerCase();
-    
+
     return allReturns.filter(ret =>
       ret.lpnNumber.toLowerCase().includes(term) ||
       ret.trackingNumber.toLowerCase().includes(term) ||
@@ -607,13 +607,13 @@ export class ReturnService {
     weeklyReturns: number[];
   }> {
     const allReturns = await this.getAllReturns();
-    
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const todayStr = today.toISOString().split('T')[0];
-    
+
     const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-    
+
     const stats = {
       totalReturns: allReturns.length,
       pendingDecisions: 0,
@@ -693,7 +693,7 @@ export class ReturnService {
     return runTransaction(db, async (transaction) => {
       const returnRef = doc(this.returnsCollection, id);
       const returnDoc = await transaction.get(returnRef);
-      
+
       if (!returnDoc.exists()) {
         throw new Error('Return not found');
       }
@@ -704,13 +704,13 @@ export class ReturnService {
       if (returnData.originalItemId) {
         const itemRef = doc(this.serialNumberItemsCollection, returnData.originalItemId);
         const itemDoc = await transaction.get(itemRef);
-        
+
         if (itemDoc.exists()) {
           const item = itemDoc.data() as SerialNumberItem;
-          
+
           // Reset item status based on its previous state
           const newStatus = item.deliveryId ? InventoryItemStatus.DELIVERED : InventoryItemStatus.AVAILABLE;
-          
+
           transaction.update(itemRef, {
             status: newStatus,
             returnId: null,
@@ -720,7 +720,7 @@ export class ReturnService {
           // Update batch quantities
           const batchRef = doc(this.inventoryCollection, item.batchId);
           const batchDoc = await transaction.get(batchRef);
-          
+
           if (batchDoc.exists()) {
             const batch = batchDoc.data() as InventoryBatch;
             transaction.update(batchRef, {
@@ -739,19 +739,19 @@ export class ReturnService {
 
   // Add images to return
   async addImagesToReturn(
-    returnId: string, 
+    returnId: string,
     driveFiles: DriveFileReference[]
   ): Promise<void> {
     const docRef = doc(this.returnsCollection, returnId);
     const docSnap = await getDoc(docRef);
-    
+
     if (!docSnap.exists()) {
       throw new Error('Return not found');
     }
 
     const currentReturn = docSnap.data() as Return;
     const existingFiles = currentReturn.driveFiles || [];
-    
+
     await updateDoc(docRef, {
       driveFiles: [...existingFiles, ...driveFiles],
       updatedAt: Timestamp.now(),
@@ -760,19 +760,19 @@ export class ReturnService {
 
   // Remove images from return
   async removeImageFromReturn(
-    returnId: string, 
+    returnId: string,
     fileId: string
   ): Promise<void> {
     const docRef = doc(this.returnsCollection, returnId);
     const docSnap = await getDoc(docRef);
-    
+
     if (!docSnap.exists()) {
       throw new Error('Return not found');
     }
 
     const currentReturn = docSnap.data() as Return;
     const updatedFiles = (currentReturn.driveFiles || []).filter(file => file.fileId !== fileId);
-    
+
     await updateDoc(docRef, {
       driveFiles: updatedFiles,
       updatedAt: Timestamp.now(),
