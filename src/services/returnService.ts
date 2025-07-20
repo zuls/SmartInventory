@@ -149,13 +149,28 @@ export class ReturnService {
 
   // Create return with serial number (main method)
   async createReturnWithSerialNumber(
-    formData: ReturnForm,
+    formData: Partial<ReturnForm>,
     userId: string,
     driveFiles: DriveFileReference[] = []
   ): Promise<{ returnId: string; itemId?: string }> {
-    if (!formData.serialNumber) {
-      throw new Error('Serial number is required for return creation');
-    }
+      if (!formData.serialNumber) {
+        throw new Error('Serial number is required for return creation');
+      }
+      if (!formData.lpnNumber) {
+        throw new Error('LPN number is required');
+      }
+      if (!formData.trackingNumber) {
+        throw new Error('Tracking number is required');
+      }
+      if (!formData.productName) {
+        throw new Error('Product name is required');
+      }
+      if (!formData.quantity) {
+        throw new Error('Quantity is required');
+      }
+      if (!formData.condition) {
+        throw new Error('Condition is required');
+      }
 
     // Validate serial number
     const canReturn = await this.canSerialNumberBeReturned(formData.serialNumber);
@@ -168,10 +183,20 @@ export class ReturnService {
     return runTransaction(db, async (transaction) => {
       // Create return record
       const returnData: Omit<Return, 'id'> = {
-        ...formData,
+        lpnNumber: formData.lpnNumber || '',
+        trackingNumber: formData.trackingNumber || '',
+        productName: formData.productName || '',
+        sku: formData.sku,
+        condition: formData.condition || ReturnCondition.INTACT,
+        quantity: formData.quantity || 1,
         status: ReturnStatus.RECEIVED,
         receivedDate: new Date().toISOString(),
         receivedBy: userId,
+        fbaFbm: formData.fbaFbm,
+        removalOrderId: formData.removalOrderId,
+        serialNumber: formData.serialNumber,
+        reason: formData.reason,
+        notes: formData.notes,
         driveFiles,
         originalItemId: item.id,
         originalDeliveryId: item.deliveryId,
@@ -227,7 +252,7 @@ export class ReturnService {
 
   // Create return for non-existent serial number (create new product first)
   async createReturnForNewProduct(
-    formData: ReturnForm,
+    formData: Partial<ReturnForm>,
     userId: string,
     driveFiles: DriveFileReference[] = []
   ): Promise<{ returnId: string; batchId: string; itemId: string }> {
@@ -245,19 +270,19 @@ export class ReturnService {
       // Create inventory batch for the new product
       const batchData: Omit<InventoryBatch, 'id'> = {
         sku: formData.sku || `NEW-RETURN-${Date.now()}`,
-        productName: formData.productName,
-        totalQuantity: formData.quantity,
-        availableQuantity: 0, // Not available until decision is made
+        productName: formData.productName || 'Unknown Product',
+        totalQuantity: formData.quantity || 1,
+        availableQuantity: 0,
         reservedQuantity: 0,
         deliveredQuantity: 0,
-        returnedQuantity: formData.quantity,
+        returnedQuantity: formData.quantity || 1,
         source: InventorySource.FROM_RETURN,
-        sourceReference: '', // Will be updated with return ID
+        sourceReference: '',
         receivedDate: new Date().toISOString(),
         receivedBy: userId,
-        batchNotes: `New product created from return - LPN: ${formData.lpnNumber}`,
+        batchNotes: `New product created from return - LPN: ${formData.lpnNumber || 'Unknown'}`,
         serialNumbersAssigned: 1,
-        serialNumbersUnassigned: formData.quantity - 1,
+        serialNumbersUnassigned: (formData.quantity || 1) - 1,
       };
 
       const batchRef = doc(this.inventoryCollection);
@@ -286,7 +311,8 @@ export class ReturnService {
 
       // Create additional items if quantity > 1
       const additionalItemIds: string[] = [];
-      for (let i = 1; i < formData.quantity; i++) {
+      const quantity = formData.quantity || 1;
+      for (let i = 1; i < quantity; i++) {
         const additionalItemRef = doc(this.serialNumberItemsCollection);
         transaction.set(additionalItemRef, {
           batchId: batchRef.id,
@@ -300,10 +326,20 @@ export class ReturnService {
 
       // Create return record
       const returnData: Omit<Return, 'id'> = {
-        ...formData,
+        lpnNumber: formData.lpnNumber || '',
+        trackingNumber: formData.trackingNumber || '',
+        productName: formData.productName || '',
+        sku: formData.sku,
+        condition: formData.condition || ReturnCondition.INTACT,
+        quantity: formData.quantity || 1,
         status: ReturnStatus.RECEIVED,
         receivedDate: new Date().toISOString(),
         receivedBy: userId,
+        fbaFbm: formData.fbaFbm,
+        removalOrderId: formData.removalOrderId,
+        serialNumber: formData.serialNumber,
+        reason: formData.reason,
+        notes: formData.notes,
         driveFiles,
         originalItemId: itemRef.id,
         returnDecision: 'pending',
@@ -780,11 +816,11 @@ export class ReturnService {
   }
 
   // Get return history for dashboard
-  async getReturnHistory(limit: number = 10): Promise<Return[]> {
+  async getReturnHistory(limitCount: number = 10): Promise<Return[]> {
     const q = query(
       this.returnsCollection,
       orderBy('receivedDate', 'desc'),
-      limit(limit)
+      limit(limitCount)
     );
 
     const querySnapshot = await getDocs(q);

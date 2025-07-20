@@ -79,21 +79,20 @@ export class InventoryService {
       const itemRef = doc(this.serialNumberItemsCollection);
       const hasSerialNumber = i < preAssignedSerialNumbers.length;
       
-      const itemData: Omit<SerialNumberItem, 'id'> = {
+      const itemData: any = {
         batchId: batchRef.id,
-        serialNumber: hasSerialNumber ? preAssignedSerialNumbers[i] : undefined,
         status: InventoryItemStatus.AVAILABLE,
-        assignedDate: hasSerialNumber ? new Date().toISOString() : undefined,
-        assignedBy: hasSerialNumber ? userId : undefined,
-        createdAt: new Date().toISOString(),
+        createdAt: Timestamp.now(),
         notes: `Item ${i + 1} of ${quantity} from package ${packageData.trackingNumber}`,
       };
 
-      batch.set(itemRef, {
-        ...itemData,
-        createdAt: Timestamp.now(),
-        assignedDate: hasSerialNumber ? Timestamp.now() : undefined, // <-- FIX: Changed null to undefined
-      });
+      if (hasSerialNumber) {
+        itemData.serialNumber = preAssignedSerialNumbers[i];
+        itemData.assignedDate = Timestamp.now();
+        itemData.assignedBy = userId;
+      }
+
+      batch.set(itemRef, itemData);
 
       itemIds.push(itemRef.id);
 

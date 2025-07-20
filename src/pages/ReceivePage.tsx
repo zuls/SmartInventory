@@ -67,15 +67,14 @@ import { format } from 'date-fns';
 const carriers = Object.values(Carrier);
 
 // Updated validation schema for bulk receiving
-const schema = yup.object().shape({
+const schema: yup.ObjectSchema<ReceivePackageForm> = yup.object().shape({
   trackingNumber: yup.string().required('Tracking number is required'),
   carrier: yup.mixed<Carrier>().oneOf(Object.values(Carrier)).required('Carrier is required'),
   productName: yup.string().required('Product name is required'),
   sku: yup.string().optional(),
-  quantity: yup.number().min(1, 'Quantity must be at least 1').max(10000, 'Quantity cannot exceed 10,000').required('Quantity is required'),
+  quantity: yup.number().min(1).max(10000).required('Quantity is required'),
   notes: yup.string().optional(),
-  // Optional serial numbers array
-  serialNumbers: yup.array().of(yup.string()).optional(),
+  serialNumbers: yup.array().of(yup.string().required()).optional(), // Add .required() to the string
   barcode: yup.string().optional(),
 });
 
@@ -116,7 +115,7 @@ const ReceivePage: React.FC = () => {
     watch,
     formState: { errors },
   } = useForm<ReceivePackageForm>({
-    resolver: yupResolver(schema),
+    resolver: yupResolver(schema) as any,
     defaultValues: {
       trackingNumber: '',
       carrier: Carrier.FEDEX,
@@ -188,14 +187,14 @@ const ReceivePage: React.FC = () => {
 
       // Create package and inventory
       const result = await inventoryService.createInventoryFromPackage(
-        formDataWithSerials,
+        { ...formDataWithSerials, id: 'temp-id' }, // Add temporary ID
         data.quantity,
         user.uid,
         validSerialNumbers
       );
 
       // Also create package record
-      await packageService.createPackage(formDataWithSerials, user.uid);
+      await packageService.createPackage(data, user.uid);
 
       setCreatedInventory({
         batchId: result.batchId,
