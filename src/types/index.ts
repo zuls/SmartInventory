@@ -82,6 +82,7 @@ export interface SerialNumberItem {
   notes?: string;
   createdAt: string;
   updatedAt?: string;
+  deliveryDate?: string;
 }
 
 // Updated interface for serial number validation
@@ -109,6 +110,9 @@ export interface Package {
   notes?: string;
   // Link to created inventory items
   createdInventoryItems?: string[]; // Array of SerialNumberItem IDs
+  labeledDate?: string;
+  dispatchDate?: string;
+  quantity?: number;
 }
 
 export interface Return {
@@ -139,6 +143,21 @@ export interface Return {
   returnDecisionNotes?: string;
 }
 
+export interface StockLog {
+  id: string;
+  timestamp: string;
+  type: 'IN' | 'OUT' | 'ADJUSTMENT';
+  sku: string;
+  productName: string;
+  quantityChange: number;
+  newQuantity: number;
+  user: string;
+  notes: string;
+  referenceId: string; // e.g., Package ID, Return ID, Delivery ID
+  batchId?: string; // Optional reference to inventory batch
+  itemId?: string; // Optional reference to specific item
+}
+
 // Updated inventory batch interface
 export interface InventoryBatch {
   id: string;
@@ -158,6 +177,7 @@ export interface InventoryBatch {
   serialNumbersAssigned: number; // Count of items with serial numbers
   serialNumbersUnassigned: number; // Count of items without serial numbers
   items?: SerialNumberItem[]; // Array of individual items in this batch
+  updatedAt?: string;
 }
 
 export interface ShippingLabelData {
@@ -378,4 +398,22 @@ export interface InventoryItemWithDetails {
     by: string;
     details?: string;
   };
+}
+
+export interface Delivery {
+  id: string; // Only ID is mandatory
+  itemId?: string;
+  batchId?: string;
+  serialNumber?: string;
+  sku?: string; // ADD THIS
+  productName?: string; // ADD THIS
+  shippingLabelData?: ShippingLabelData;
+  customerInfo?: CustomerInfo;
+  deliveredBy?: string;
+  status?: 'pending' | 'delivered' | 'returned';
+  deliveryDate?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  trackingNumber?: string;
+  notes?: string;
 }

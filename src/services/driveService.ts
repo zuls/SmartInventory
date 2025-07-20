@@ -1,4 +1,4 @@
-// src/services/driveService.ts - Simple and reliable version
+// src/services/driveService.ts - Fixed version
 import { DriveFileReference } from "../types";
 
 declare global {
@@ -9,18 +9,62 @@ declare global {
 }
 
 export class DriveService {
-  private isInitialized = false;
-  private isSignedIn = false;
+  private isInitializedFlag = false; // Renamed to avoid confusion
+  private isSignedInFlag = false;    // Renamed to avoid confusion
   private initError: string | null = null;
   private gapi: any = null;
+  private USE_REAL_UPLOADS = false; // Set to true when you want real uploads
 
   constructor() {
     console.log('🚀 DriveService initialized');
   }
 
-  // Simple initialization that just loads the scripts
+  // PUBLIC METHODS
+
+  isSignedIn(): boolean {
+    return this.isSignedInFlag;
+  }
+
+  isInitialized(): boolean {
+    return this.isInitializedFlag;
+  }
+
+  getError(): string | null {
+    return this.initError;
+  }
+
+  // Public method to sign in
+  async signIn(): Promise<void> {
+    try {
+      if (!this.isInitializedFlag) {
+        await this.initialize();
+      }
+      
+      if (this.USE_REAL_UPLOADS) {
+        // TODO: Implement real Google OAuth flow here
+        console.log('🔐 Real Google sign-in not implemented yet');
+        throw new Error('Real Google sign-in not implemented yet');
+      } else {
+        // For now, use mock sign in
+        await this.mockSignIn();
+      }
+    } catch (error) {
+      console.error('Sign in failed:', error);
+      throw error;
+    }
+  }
+
+  // Public method to sign out
+  signOut(): void {
+    this.isSignedInFlag = false;
+    // Keep initialized status so user can reconnect easily
+    console.log('👋 Signed out from Google Drive');
+  }
+
+  // INITIALIZATION
+
   async initialize(): Promise<void> {
-    if (this.isInitialized) {
+    if (this.isInitializedFlag) {
       return;
     }
 
@@ -34,7 +78,7 @@ export class DriveService {
       await this.waitForGapi();
       
       this.gapi = window.gapi;
-      this.isInitialized = true;
+      this.isInitializedFlag = true;
       this.initError = null;
       
       console.log('✅ Google API loaded successfully');
@@ -45,10 +89,8 @@ export class DriveService {
     }
   }
 
-  // Toggle between mock and real uploads
-  private USE_REAL_UPLOADS = false; // Set to true when you want real uploads
+  // UPLOAD METHODS
 
-  // Simple sign-in using Google's built-in picker
   async signInAndUpload(files: File[], userId: string): Promise<DriveFileReference[]> {
     try {
       console.log('🔐 Starting upload process...');
@@ -85,19 +127,6 @@ export class DriveService {
     }
   }
 
-  // Enable real uploads (call this when ready)
-  enableRealUploads(): void {
-    this.USE_REAL_UPLOADS = true;
-    console.log('✅ Real Google Drive uploads enabled');
-  }
-
-  // Disable real uploads (back to mock)
-  enableMockUploads(): void {
-    this.USE_REAL_UPLOADS = false;
-    console.log('📝 Mock uploads enabled');
-  }
-
-  // Alternative: Direct upload without complex authentication
   async uploadWithPicker(files: File[], userId: string): Promise<DriveFileReference[]> {
     // Simple mock upload that always works
     console.log('📤 Mock uploading files:', files.map(f => f.name));
@@ -116,8 +145,78 @@ export class DriveService {
     }));
   }
 
-  // Real upload implementation (use when you want actual uploads)
-  async uploadFilesReal(files: File[], userId: string, accessToken: string): Promise<DriveFileReference[]> {
+  // CONFIGURATION METHODS
+
+  enableRealUploads(): void {
+    this.USE_REAL_UPLOADS = true;
+    console.log('✅ Real Google Drive uploads enabled');
+  }
+
+  enableMockUploads(): void {
+    this.USE_REAL_UPLOADS = false;
+    console.log('📝 Mock uploads enabled');
+  }
+
+  // STATUS METHOD
+
+  getStatus(): {
+    isInitialized: boolean;
+    isSignedIn: boolean;
+    error: string | null;
+    details: string;
+  } {
+    let details = '';
+    
+    if (this.initError) {
+      details = this.initError;
+    } else if (this.isSignedInFlag) {
+      details = 'Ready for file upload - mock mode enabled';
+    } else if (this.isInitializedFlag) {
+      details = 'Click to connect and enable uploads';
+    } else {
+      details = 'Click connect to enable file uploads';
+    }
+    
+    return {
+      isInitialized: this.isInitializedFlag,
+      isSignedIn: this.isSignedInFlag,
+      error: this.initError,
+      details
+    };
+  }
+
+  // MOCK METHODS FOR TESTING
+
+  mockSignIn(): Promise<void> {
+    return new Promise((resolve) => {
+      console.log('🔐 Mock signing in...');
+      setTimeout(() => {
+        this.isSignedInFlag = true;
+        // Don't set initialized here - it should be set only by initialize()
+        console.log('✅ Mock sign-in successful');
+        resolve();
+      }, 1000);
+    });
+  }
+
+  // UTILITY METHODS
+
+  forceError(message: string): void {
+    this.initError = message;
+    this.isInitializedFlag = false;
+    this.isSignedInFlag = false;
+  }
+
+  reset(): void {
+    this.isInitializedFlag = false;
+    this.isSignedInFlag = false;
+    this.initError = null;
+    this.gapi = null;
+  }
+
+  // PRIVATE HELPER METHODS
+
+  private async uploadFilesReal(files: File[], userId: string, accessToken: string): Promise<DriveFileReference[]> {
     const uploadedFiles: DriveFileReference[] = [];
     
     for (const file of files) {
@@ -167,7 +266,6 @@ export class DriveService {
     return uploadedFiles;
   }
 
-  // Helper to ensure folder exists
   private async ensureFolder(folderName: string, accessToken: string): Promise<string> {
     try {
       // Search for existing folder
@@ -206,7 +304,6 @@ export class DriveService {
     }
   }
 
-  // Load script helper
   private loadScript(src: string): Promise<void> {
     return new Promise((resolve, reject) => {
       const existingScript = document.querySelector(`script[src="${src}"]`);
@@ -224,7 +321,6 @@ export class DriveService {
     });
   }
 
-  // Wait for gapi to be available
   private waitForGapi(): Promise<void> {
     return new Promise((resolve, reject) => {
       let attempts = 0;
@@ -243,67 +339,6 @@ export class DriveService {
       
       check();
     });
-  }
-
-  // Status methods
-  getStatus(): {
-    isInitialized: boolean;
-    isSignedIn: boolean;
-    error: string | null;
-    details: string;
-  } {
-    let details = '';
-    
-    if (this.initError) {
-      details = this.initError;
-    } else if (this.isSignedIn) {
-      details = 'Ready for file upload - mock mode enabled';
-    } else if (this.isInitialized) {
-      details = 'Click to connect and enable uploads';
-    } else {
-      details = 'Click connect to enable file uploads';
-    }
-    
-    return {
-      isInitialized: this.isInitialized,
-      isSignedIn: this.isSignedIn,
-      error: this.initError,
-      details
-    };
-  }
-
-  // Mock sign in for testing
-  mockSignIn(): Promise<void> {
-    return new Promise((resolve) => {
-      console.log('🔐 Mock signing in...');
-      setTimeout(() => {
-        this.isSignedIn = true;
-        this.isInitialized = true; // Also mark as initialized
-        console.log('✅ Mock sign-in successful');
-        resolve();
-      }, 1000);
-    });
-  }
-
-  signOut(): void {
-    this.isSignedIn = false;
-    // Keep initialized status so user can reconnect easily
-    console.log('👋 Signed out');
-  }
-
-  // For testing - force error
-  forceError(message: string): void {
-    this.initError = message;
-    this.isInitialized = false;
-    this.isSignedIn = false;
-  }
-
-  // Reset everything
-  reset(): void {
-    this.isInitialized = false;
-    this.isSignedIn = false;
-    this.initError = null;
-    this.gapi = null;
   }
 }
 

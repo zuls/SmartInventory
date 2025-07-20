@@ -31,6 +31,7 @@ import {
   BulkOperation,
   ReceivePackageForm, // <-- FIX: Added missing import
   Return,
+  Delivery,
 } from '../types';
 
 export class InventoryService {
@@ -524,23 +525,56 @@ export class InventoryService {
     );
   }
 
-  async searchDeliveredItems(searchTerm: string): Promise<any[]> {
-    const querySnapshot = await getDocs(this.deliveriesCollection);
-    const deliveries = querySnapshot.docs.map(doc => ({
-      id: doc.id,
-      ...doc.data(),
-      deliveryDate: doc.data().deliveryDate || new Date().toISOString(),
-    }));
+  async searchDeliveredItems(searchTerm: string): Promise<Delivery[]> {
+  const querySnapshot = await getDocs(this.deliveriesCollection);
+  const deliveries: Delivery[] = querySnapshot.docs.map(doc => {
+    const data = doc.data();
     
-    const term = searchTerm.toLowerCase();
-    return deliveries.filter(delivery =>
-      (delivery.serialNumber && delivery.serialNumber.toLowerCase().includes(term)) ||
-      (delivery.shippingLabelData?.labelNumber && 
-       delivery.shippingLabelData.labelNumber.toLowerCase().includes(term)) ||
-      (delivery.customerInfo?.name && 
-       delivery.customerInfo.name.toLowerCase().includes(term))
-    );
-  }
+    // Create delivery object with all possible fields
+    const delivery: Delivery = {
+      id: doc.id,
+    };
+
+    // Safely add all optional fields
+    if (data.itemId) delivery.itemId = data.itemId;
+    if (data.batchId) delivery.batchId = data.batchId;
+    if (data.serialNumber) delivery.serialNumber = data.serialNumber;
+    if (data.sku) delivery.sku = data.sku;
+    if (data.productName) delivery.productName = data.productName;
+    if (data.shippingLabelData) delivery.shippingLabelData = data.shippingLabelData;
+    if (data.customerInfo) delivery.customerInfo = data.customerInfo;
+    if (data.deliveredBy) delivery.deliveredBy = data.deliveredBy;
+    if (data.status) delivery.status = data.status;
+    if (data.trackingNumber) delivery.trackingNumber = data.trackingNumber;
+    if (data.notes) delivery.notes = data.notes;
+    
+    // Handle date fields with fallbacks
+    if (data.createdAt) {
+      delivery.createdAt = data.createdAt?.toDate?.()?.toISOString() || data.createdAt;
+    }
+    if (data.deliveryDate) {
+      delivery.deliveryDate = data.deliveryDate?.toDate?.()?.toISOString() || data.deliveryDate;
+    } else if (data.createdAt) {
+      // Fallback: use createdAt as deliveryDate if deliveryDate doesn't exist
+      delivery.deliveryDate = data.createdAt?.toDate?.()?.toISOString() || data.createdAt;
+    }
+
+    return delivery;
+  });
+  
+  const term = searchTerm.toLowerCase();
+  return deliveries.filter(delivery =>
+    (delivery.serialNumber && delivery.serialNumber.toLowerCase().includes(term)) ||
+    (delivery.sku && delivery.sku.toLowerCase().includes(term)) ||
+    (delivery.productName && delivery.productName.toLowerCase().includes(term)) ||
+    (delivery.shippingLabelData?.labelNumber && 
+     delivery.shippingLabelData.labelNumber.toLowerCase().includes(term)) ||
+    (delivery.customerInfo?.name && 
+     delivery.customerInfo.name.toLowerCase().includes(term)) ||
+    (delivery.trackingNumber && delivery.trackingNumber.toLowerCase().includes(term)) ||
+    (delivery.deliveredBy && delivery.deliveredBy.toLowerCase().includes(term))
+  );
+}
   
     async getInventoryStats(): Promise<InventoryStats> {
     const [batchSnapshot, itemSnapshot] = await Promise.all([
@@ -624,6 +658,36 @@ export class InventoryService {
       assignedDate: doc.data().assignedDate?.toDate?.()?.toISOString(),
     })) as SerialNumberItem[];
   }
+  
+  async getInventoryBatchById(batchId: string): Promise<InventoryBatch | null> {
+  const docRef = doc(this.inventoryCollection, batchId);
+  const docSnap = await getDoc(docRef);
+  
+  if (docSnap.exists()) {
+    return {
+      id: docSnap.id,
+      ...docSnap.data(),
+      receivedDate: docSnap.data().receivedDate?.toDate?.()?.toISOString() || new Date().toISOString(),
+    } as InventoryBatch;
+  }
+  return null;
+}
+
+async getDeliveryHistoryForItem(itemId: string): Promise<any[]> {
+  const q = query(
+    this.deliveriesCollection,
+    where('itemId', '==', itemId),
+    orderBy('createdAt', 'desc')
+  );
+  
+  const snapshot = await getDocs(q);
+  return snapshot.docs.map(doc => ({
+    id: doc.id,
+    ...doc.data(),
+    deliveryDate: doc.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+  }));
+  }
+
 }
 
 export const inventoryService = new InventoryService();

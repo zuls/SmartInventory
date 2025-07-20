@@ -15,7 +15,7 @@ import {
   Timestamp,
 } from 'firebase/firestore';
 import { db } from '../lib/firebase';
-import { Package, ReceivePackageForm, PackageStatus } from '../types';
+import { Package, ReceivePackageForm, PackageStatus,Carrier } from '../types';
 import { inventoryService } from './inventoryService'; // Import the inventory service
 
 export class PackageService {
@@ -112,18 +112,20 @@ async getPackageById(id: string): Promise<Package | null> {
 
   if (docSnap.exists()) {
     const data = docSnap.data();
-    // Ensure date fields are converted to string format if they are Timestamps
-    const receivedDate = data.receivedDate?.toDate?.()?.toISOString() || data.receivedDate;
-    const labeledDate = data.labeledDate?.toDate?.()?.toISOString() || data.labeledDate;
-    const dispatchDate = data.dispatchDate?.toDate?.()?.toISOString() || data.dispatchDate;
-
     return {
       id: docSnap.id,
-      ...data,
-      receivedDate,
-      labeledDate,
-      dispatchDate,
-    } as unknown as Package; // <-- THIS IS THE FIX
+      trackingNumber: data.trackingNumber || '',
+      carrier: data.carrier || Carrier.OTHER,
+      productName: data.productName || '',
+      sku: data.sku,
+      barcode: data.barcode,
+      status: data.status || PackageStatus.RECEIVED,
+      receivedDate: data.receivedDate?.toDate?.()?.toISOString() || data.receivedDate || new Date().toISOString(),
+      receivedBy: data.receivedBy || '',
+      notes: data.notes,
+      labeledDate: data.labeledDate?.toDate?.()?.toISOString() || data.labeledDate,
+      dispatchDate: data.dispatchDate?.toDate?.()?.toISOString() || data.dispatchDate,
+    } as Package;
   }
   return null;
 }

@@ -71,11 +71,12 @@ const schema = yup.object().shape({
   trackingNumber: yup.string().required('Tracking number is required'),
   carrier: yup.mixed<Carrier>().oneOf(Object.values(Carrier)).required('Carrier is required'),
   productName: yup.string().required('Product name is required'),
-  sku: yup.string().required('SKU is required'),
+  sku: yup.string().optional(),
   quantity: yup.number().min(1, 'Quantity must be at least 1').max(10000, 'Quantity cannot exceed 10,000').required('Quantity is required'),
   notes: yup.string().optional(),
   // Optional serial numbers array
   serialNumbers: yup.array().of(yup.string()).optional(),
+  barcode: yup.string().optional(),
 });
 
 interface CreatedInventoryResult {
@@ -124,6 +125,7 @@ const ReceivePage: React.FC = () => {
       quantity: 1,
       notes: '',
       serialNumbers: [],
+      barcode: '',
     },
   });
 
@@ -500,7 +502,7 @@ const ReceivePage: React.FC = () => {
 
                       <Grid container spacing={2}>
                         {serialNumbersInput.map((serialNumber, index) => (
-                          <Grid xs={12} sm={6} md={4} key={index}>
+                          <Grid size={{ xs: 12, sm: 6, md: 4 }} key={index}>
                             <TextField
                               fullWidth
                               size="small"
