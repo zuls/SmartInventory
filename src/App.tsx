@@ -99,3 +99,7 @@ const App: React.FC = () => {
 };
 
 export default App;
+
+//Check the dev branch for any additional changes or features that might be needed.
+// This file serves as the main entry point for the application, setting up routing and theming
+// It uses React Router for navigation and Material-UI for styling.
