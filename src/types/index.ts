@@ -194,18 +194,17 @@ export interface ReceivePackageForm {
 
 // Updated return form to include serial number scanning
 export interface ReturnForm {
-  lpnNumber: string;
-  trackingNumber: string;
-  productName: string;
+  lpnNumber?: string;
+  trackingNumber?: string;
+  productName?: string;
   sku?: string;
-  condition: ReturnCondition;
+  condition?: ReturnCondition;
   reason?: string;
   notes?: string;
-  quantity: number;
+  quantity?: number;
   fbaFbm?: 'FBA' | 'FBM';
   removalOrderId?: string;
-  serialNumber?: string; // Scanned serial number
-  // New fields for return decision
+  serialNumber?: string;
   returnDecision?: 'move_to_inventory' | 'keep_in_returns';
   returnDecisionNotes?: string;
 }

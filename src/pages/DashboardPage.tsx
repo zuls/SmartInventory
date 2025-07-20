@@ -6,7 +6,7 @@ import {
   Typography,
   Card,
   CardContent,
-  Grid2 as Grid, // Fixed Grid import
+  Grid, // Fixed Grid import
   Button,
   Alert,
   CircularProgress,
@@ -45,10 +45,14 @@ const Dashboard: React.FC = () => {
     totalPackages: 0,
     totalInventoryItems: 0,
     pendingReturnItems: 0,
+    itemsNeedingSerialNumbers: 0,        // ADD THIS
+    serialNumbersAssignedToday: 0,       // ADD THIS
+    returnedItemsToday: 0,
     weeklyTrend: {
       received: [0,0,0,0,0,0,0],
       dispatched: [0,0,0,0,0,0,0],
       returns: [0,0,0,0,0,0,0],
+      serialNumbersAssigned: [0,0,0,0,0,0,0],
       labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
     },
   });
@@ -77,10 +81,14 @@ const Dashboard: React.FC = () => {
           totalInventoryItems: inventoryStats?.totalAvailableItems || 0,
           pendingReturnItems: pendingReturns?.length || 0,
           pendingReturns: pendingReturns?.length || 0,
+          itemsNeedingSerialNumbers: inventoryStats?.itemsWithoutSerialNumbers || 0,        // ADD THIS
+          serialNumbersAssignedToday: 0,                                                     // ADD THIS
+          returnedItemsToday: 0,
           weeklyTrend: {
             received: [12, 15, 8, 22, 18, 5, 3],
             dispatched: [8, 12, 6, 18, 15, 3, 2],
             returns: [2, 3, 1, 4, 2, 1, 0],
+            serialNumbersAssigned: [5, 7, 3, 6, 4, 2, 1],
             labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
           },
         };
@@ -178,7 +186,7 @@ const Dashboard: React.FC = () => {
 
       {/* Main Stats Cards with LIVE DATA */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid xs={12} sm={6} md={3}> {/* Fixed Grid usage */}
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}> {/* Fixed Grid usage */}
           <StatCard
             title="Today's Received"
             value={stats.todayReceived}
@@ -188,7 +196,7 @@ const Dashboard: React.FC = () => {
           />
         </Grid>
         
-        <Grid xs={12} sm={6} md={3}> {/* Fixed Grid usage */}
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}> {/* Fixed Grid usage */}
           <StatCard
             title="Pending Returns"
             value={stats.pendingReturnItems}
@@ -199,7 +207,7 @@ const Dashboard: React.FC = () => {
           />
         </Grid>
         
-        <Grid xs={12} sm={6} md={3}> {/* Fixed Grid usage */}
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}> {/* Fixed Grid usage */}
           <StatCard
             title="Available Inventory"
             value={stats.totalInventoryItems}
@@ -209,7 +217,7 @@ const Dashboard: React.FC = () => {
           />
         </Grid>
         
-        <Grid xs={12} sm={6} md={3}> {/* Fixed Grid usage */}
+        <Grid size={{ xs: 12, sm: 6, md: 3 }}> {/* Fixed Grid usage */}
           <StatCard
             title="Today's Dispatched"
             value={stats.todayDispatched}

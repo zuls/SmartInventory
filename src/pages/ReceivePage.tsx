@@ -10,7 +10,7 @@ import {
   Typography,
   Alert,
   MenuItem,
-  Grid2 as Grid, // <-- CHANGE HERE
+  Grid, // <-- CHANGE HERE
   CircularProgress,
   IconButton,
   Stepper,
@@ -304,7 +304,7 @@ const ReceivePage: React.FC = () => {
             </Typography>
 
             <Grid container spacing={3}>
-              <Grid xs={12} md={6}> {/* <-- NO MORE "item" prop */}
+              <Grid size={{ xs: 12, md: 6 }}> 
                 <Controller
                   name="trackingNumber"
                   control={control}
@@ -327,7 +327,7 @@ const ReceivePage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="carrier"
                   control={control}
@@ -350,7 +350,7 @@ const ReceivePage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Controller
                   name="productName"
                   control={control}
@@ -366,7 +366,7 @@ const ReceivePage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid xs={12} md={8}>
+              <Grid size={{ xs: 12, md: 8 }}>
                 <Controller
                   name="sku"
                   control={control}
@@ -390,7 +390,7 @@ const ReceivePage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid xs={12} md={4}>
+              <Grid size={{ xs: 12, md: 4 }}>
                 <Button
                   variant="outlined"
                   onClick={generateSKU}
@@ -402,7 +402,7 @@ const ReceivePage: React.FC = () => {
                 </Button>
               </Grid>
 
-              <Grid xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Controller
                   name="notes"
                   control={control}
@@ -447,7 +447,7 @@ const ReceivePage: React.FC = () => {
             </Typography>
 
             <Grid container spacing={3}>
-              <Grid xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="quantity"
                   control={control}
@@ -467,7 +467,7 @@ const ReceivePage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <TextField
                   select
                   fullWidth
@@ -484,7 +484,7 @@ const ReceivePage: React.FC = () => {
 
               {/* Serial Number Input Section */}
               {serialNumberMode !== 'none' && (
-                <Grid xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Card variant="outlined">
                     <CardContent>
                       <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
@@ -542,7 +542,7 @@ const ReceivePage: React.FC = () => {
               )}
 
               {/* Information Cards */}
-              <Grid xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Alert severity="info" icon={<Info />}>
                   <Typography variant="body2">
                     <strong>Serial Numbers:</strong> You can assign serial numbers now or later.
@@ -583,29 +583,29 @@ const ReceivePage: React.FC = () => {
                   Package Summary
                 </Typography>
                 <Grid container spacing={2}>
-                  <Grid xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <Typography variant="body2" color="text.secondary">Product:</Typography>
                     <Typography variant="body1">{watchedProductName}</Typography>
                   </Grid>
-                  <Grid xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <Typography variant="body2" color="text.secondary">SKU:</Typography>
                     <Typography variant="body1" fontFamily="monospace">{watchedSku}</Typography>
                   </Grid>
-                  <Grid xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <Typography variant="body2" color="text.secondary">Tracking:</Typography>
                     <Typography variant="body1" fontFamily="monospace">{watch('trackingNumber')}</Typography>
                   </Grid>
-                  <Grid xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <Typography variant="body2" color="text.secondary">Carrier:</Typography>
                     <Typography variant="body1">{watch('carrier')}</Typography>
                   </Grid>
-                  <Grid xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <Typography variant="body2" color="text.secondary">Total Items:</Typography>
                     <Typography variant="h6" color="primary.main" fontWeight="bold">
                       {watchedQuantity}
                     </Typography>
                   </Grid>
-                  <Grid xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <Typography variant="body2" color="text.secondary">Serial Numbers:</Typography>
                     <Box display="flex" gap={1}>
                       <Chip
@@ -743,7 +743,7 @@ const ReceivePage: React.FC = () => {
 
       {/* Main Content */}
       <Grid container spacing={3}>
-        <Grid xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Card>
             <CardContent>
               <Stepper activeStep={activeStep} orientation="vertical">
@@ -764,7 +764,7 @@ const ReceivePage: React.FC = () => {
         </Grid>
 
         {/* Sidebar */}
-        <Grid xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           {/* Guidelines */}
           <Card sx={{ mb: 3 }}>
             <CardContent>

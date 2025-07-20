@@ -19,7 +19,7 @@ import {
   Tooltip,
   TextField,
   InputAdornment,
-  Grid2 as Grid, // <-- CHANGE HERE
+  Grid, // <-- CHANGE HERE
   Alert,
   CircularProgress,
   Badge,
@@ -575,7 +575,7 @@ const ReturnsPage: React.FC = () => {
 
       {/* Statistics Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid xs={12} sm={6} md={2.4}>
+        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -593,7 +593,7 @@ const ReturnsPage: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid xs={12} sm={6} md={2.4}>
+        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -613,7 +613,7 @@ const ReturnsPage: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid xs={12} sm={6} md={2.4}>
+        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -631,7 +631,7 @@ const ReturnsPage: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid xs={12} sm={6} md={2.4}>
+        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -649,7 +649,7 @@ const ReturnsPage: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid xs={12} sm={6} md={2.4}>
+        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -672,7 +672,7 @@ const ReturnsPage: React.FC = () => {
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Grid container spacing={2} alignItems="center">
-            <Grid xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 2 }}>
               <TextField
                 fullWidth
                 placeholder="Search by LPN, Serial #, Product, SKU..."
@@ -687,7 +687,7 @@ const ReturnsPage: React.FC = () => {
                 }}
               />
             </Grid>
-            <Grid xs={12} md={2}>
+            <Grid size={{ xs: 12, md: 2 }}>
               <FormControl fullWidth>
                 <InputLabel>Status</InputLabel>
                 <Select
@@ -702,7 +702,7 @@ const ReturnsPage: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid xs={12} md={2}>
+            <Grid size={{ xs: 12, md: 2 }}>
               <FormControl fullWidth>
                 <InputLabel>Condition</InputLabel>
                 <Select
@@ -717,7 +717,7 @@ const ReturnsPage: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid xs={12} md={2}>
+            <Grid size={{ xs: 12, md: 2 }}>
               <FormControl fullWidth>
                 <InputLabel>Decision</InputLabel>
                 <Select
@@ -731,7 +731,7 @@ const ReturnsPage: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid xs={12} md={2}>
+            <Grid size={{ xs: 12, md: 2 }}>
               {stats.pendingDecisions > 0 && (
                 <Button
                   fullWidth
@@ -1110,7 +1110,7 @@ const ReturnsPage: React.FC = () => {
           {selectedReturn && (
             <Grid container spacing={3}>
               {/* Return Information */}
-              <Grid xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Accordion defaultExpanded>
                   <AccordionSummary expandIcon={<ExpandMore />}>
                     <Typography variant="subtitle1" fontWeight="bold">
@@ -1119,35 +1119,35 @@ const ReturnsPage: React.FC = () => {
                   </AccordionSummary>
                   <AccordionDetails>
                     <Grid container spacing={2}>
-                      <Grid xs={6}>
+                      <Grid size={{ xs: 6 }}>
                         <Typography variant="caption" color="text.secondary">LPN Number</Typography>
                         <Typography variant="body1" fontFamily="monospace" fontWeight="bold">
                           {selectedReturn.lpnNumber}
                         </Typography>
                       </Grid>
-                      <Grid xs={6}>
+                      <Grid size={{ xs: 6 }}>
                         <Typography variant="caption" color="text.secondary">Tracking Number</Typography>
                         <Typography variant="body1" fontFamily="monospace">
                           {selectedReturn.trackingNumber}
                         </Typography>
                       </Grid>
-                      <Grid xs={6}>
+                      <Grid size={{ xs: 6 }}>
                         <Typography variant="caption" color="text.secondary">Serial Number</Typography>
                         <Typography variant="body1" fontFamily="monospace">
                           {selectedReturn.serialNumber || 'Not provided'}
                         </Typography>
                       </Grid>
-                      <Grid xs={6}>
+                      <Grid size={{ xs: 6 }}>
                         <Typography variant="caption" color="text.secondary">Product Name</Typography>
                         <Typography variant="body1">{selectedReturn.productName}</Typography>
                       </Grid>
-                      <Grid xs={6}>
+                      <Grid size={{ xs: 6 }}>
                         <Typography variant="caption" color="text.secondary">SKU</Typography>
                         <Typography variant="body1" fontFamily="monospace">
                           {selectedReturn.sku || 'Not provided'}
                         </Typography>
                       </Grid>
-                      <Grid xs={6}>
+                      <Grid size={{ xs: 6 }}>
                         <Typography variant="caption" color="text.secondary">Condition</Typography>
                         <Chip
                           label={selectedReturn.condition}
@@ -1156,29 +1156,29 @@ const ReturnsPage: React.FC = () => {
                           icon={getConditionChip(selectedReturn.condition).icon}
                         />
                       </Grid>
-                      <Grid xs={6}>
+                      <Grid size={{ xs: 6 }}>
                         <Typography variant="caption" color="text.secondary">Quantity</Typography>
                         <Typography variant="body1" fontWeight="bold">
                           {selectedReturn.quantity}
                         </Typography>
                       </Grid>
-                      <Grid xs={6}>
+                      <Grid size={{ xs: 6 }}>
                         <Typography variant="caption" color="text.secondary">FBA/FBM</Typography>
                         <Typography variant="body1">{selectedReturn.fbaFbm || 'Not specified'}</Typography>
                       </Grid>
-                      <Grid xs={6}>
+                      <Grid size={{ xs: 6 }}>
                         <Typography variant="caption" color="text.secondary">Removal Order ID</Typography>
                         <Typography variant="body1" fontFamily="monospace">
                           {selectedReturn.removalOrderId || 'Not provided'}
                         </Typography>
                       </Grid>
-                      <Grid xs={6}>
+                      <Grid size={{ xs: 6 }}>
                         <Typography variant="caption" color="text.secondary">Received Date</Typography>
                         <Typography variant="body1">
                           {format(new Date(selectedReturn.receivedDate), 'PPpp')}
                         </Typography>
                       </Grid>
-                      <Grid xs={6}>
+                      <Grid size={{ xs: 6 }}>
                         <Typography variant="caption" color="text.secondary">Received By</Typography>
                         <Typography variant="body1">{selectedReturn.receivedBy}</Typography>
                       </Grid>
@@ -1189,7 +1189,7 @@ const ReturnsPage: React.FC = () => {
 
               {/* Decision Information */}
               {selectedReturn.returnDecision !== 'pending' && (
-                <Grid xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Accordion>
                     <AccordionSummary expandIcon={<ExpandMore />}>
                       <Typography variant="subtitle1" fontWeight="bold">
@@ -1198,13 +1198,13 @@ const ReturnsPage: React.FC = () => {
                     </AccordionSummary>
                     <AccordionDetails>
                       <Grid container spacing={2}>
-                        <Grid xs={6}>
+                        <Grid size={{ xs: 6 }}>
                           <Typography variant="caption" color="text.secondary">Decision</Typography>
                           <Typography variant="body1">
                             {selectedReturn.returnDecision === 'move_to_inventory' ? 'Moved to Inventory' : 'Kept in Returns'}
                           </Typography>
                         </Grid>
-                        <Grid xs={6}>
+                        <Grid size={{ xs: 6 }}>
                           <Typography variant="caption" color="text.secondary">Decision Date</Typography>
                           <Typography variant="body1">
                             {selectedReturn.returnDecisionDate
@@ -1213,11 +1213,11 @@ const ReturnsPage: React.FC = () => {
                             }
                           </Typography>
                         </Grid>
-                        <Grid xs={6}>
+                        <Grid size={{ xs: 6 }}>
                           <Typography variant="caption" color="text.secondary">Decision By</Typography>
                           <Typography variant="body1">{selectedReturn.returnDecisionBy || 'Not available'}</Typography>
                         </Grid>
-                        <Grid xs={12}>
+                        <Grid size={{ xs: 12 }}>
                           <Typography variant="caption" color="text.secondary">Decision Notes</Typography>
                           <Typography variant="body1">
                             {selectedReturn.returnDecisionNotes || 'No notes provided'}
@@ -1231,7 +1231,7 @@ const ReturnsPage: React.FC = () => {
 
               {/* Remarks/Notes */}
               {selectedReturn.notes && (
-                <Grid xs={12}>
+                <Grid size={{ xs: 12 }}>
                   <Accordion>
                     <AccordionSummary expandIcon={<ExpandMore />}>
                       <Typography variant="subtitle1" fontWeight="bold">
@@ -1248,7 +1248,7 @@ const ReturnsPage: React.FC = () => {
               )}
 
               {/* Images Section */}
-              <Grid xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Accordion defaultExpanded>
                   <AccordionSummary expandIcon={<ExpandMore />}>
                     <Typography variant="subtitle1" fontWeight="bold">
@@ -1260,7 +1260,7 @@ const ReturnsPage: React.FC = () => {
                       {selectedReturn.driveFiles && selectedReturn.driveFiles.length > 0 ? (
                         <Grid container spacing={2}>
                           {selectedReturn.driveFiles.map((file, index) => (
-                            <Grid xs={3} key={file.fileId}>
+                            <Grid size={{ xs: 3 }} key={file.fileId}>
                               <Card sx={{ cursor: 'pointer' }}>
                                 {file.fileId.startsWith('mock_file_') ? (
                                   <Box

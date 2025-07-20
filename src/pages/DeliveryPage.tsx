@@ -6,7 +6,7 @@ import {
   Typography,
   Card,
   CardContent,
-  Grid2 as Grid, // <-- CHANGE HERE
+  Grid, // <-- CHANGE HERE
   TextField,
   Button,
   Alert,
@@ -420,7 +420,7 @@ const DeliveryPage: React.FC = () => {
             </Typography>
 
             <Grid container spacing={2} sx={{ mb: 3 }}>
-              <Grid xs={12} md={8}>
+              <Grid size={{ xs: 12, md: 8 }}>
                 <TextField
                   fullWidth
                   label="Search by SKU"
@@ -432,7 +432,7 @@ const DeliveryPage: React.FC = () => {
                   }}
                 />
               </Grid>
-              <Grid xs={12} md={4}>
+              <Grid size={{ xs: 12, md: 4 }}>
                 <Button
                   variant="outlined"
                   onClick={() => setProductSelectionOpen(true)}
@@ -454,15 +454,15 @@ const DeliveryPage: React.FC = () => {
                     Selected Product
                   </Typography>
                   <Grid container spacing={2}>
-                    <Grid xs={4}>
+                    <Grid size={{ xs: 4 }}>
                       <Typography variant="body2" color="text.secondary">Product:</Typography>
                       <Typography variant="body1">{selectedProduct.productName}</Typography>
                     </Grid>
-                    <Grid xs={4}>
+                    <Grid size={{ xs: 4 }}>
                       <Typography variant="body2" color="text.secondary">SKU:</Typography>
                       <Typography variant="body1" fontFamily="monospace">{selectedProduct.sku}</Typography>
                     </Grid>
-                    <Grid xs={4}>
+                    <Grid size={{ xs: 4 }}>
                       <Typography variant="body2" color="text.secondary">Available:</Typography>
                       <Typography variant="body1" color="success.main" fontWeight="bold">
                         {selectedProduct.totalAvailable || selectedProduct.availableQuantity}
@@ -603,11 +603,11 @@ const DeliveryPage: React.FC = () => {
                     Selected Item
                   </Typography>
                   <Grid container spacing={2}>
-                    <Grid xs={6}>
+                    <Grid size={{ xs: 6 }}>
                       <Typography variant="body2" color="text.secondary">Product:</Typography>
                       <Typography variant="body1">{selectedProduct?.productName}</Typography>
                     </Grid>
-                    <Grid xs={6}>
+                    <Grid size={{ xs: 6 }}>
                       <Typography variant="body2" color="text.secondary">Current Serial:</Typography>
                       <Typography variant="body1" fontFamily="monospace">
                         {selectedItem.serialNumber || 'Not assigned'}
@@ -645,14 +645,14 @@ const DeliveryPage: React.FC = () => {
                     </Alert>
 
                     <Grid container spacing={2}>
-                      <Grid xs={12} md={6}>
+                      <Grid size={{ xs: 12, md: 6 }}>
                         <TextField
                           fullWidth
                           label="Assign Serial Number *"
                           value={newSerialNumber}
                           onChange={(e) => setNewSerialNumber(e.target.value)}
                           placeholder="Enter or scan serial number"
-                          error={serialNumberValidation && !serialNumberValidation.valid}
+                          error={serialNumberValidation ? !serialNumberValidation.valid: false}
                           helperText={
                             serialNumberValidation?.error ||
                             (serialNumberValidation?.valid ? 'Serial number is valid' : 'Enter a unique serial number')
@@ -669,7 +669,7 @@ const DeliveryPage: React.FC = () => {
                           }}
                         />
                       </Grid>
-                      <Grid xs={12} md={3}>
+                      <Grid size={{ xs: 12, md: 3 }}>
                         <Button
                           variant="outlined"
                           onClick={autoAssignSerialNumber}
@@ -713,7 +713,7 @@ const DeliveryPage: React.FC = () => {
             </Typography>
 
             <Grid container spacing={3}>
-              <Grid xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="shippingLabelData.labelNumber"
                   control={control}
@@ -737,7 +737,7 @@ const DeliveryPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="shippingLabelData.carrier"
                   control={control}
@@ -760,7 +760,7 @@ const DeliveryPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="shippingLabelData.trackingNumber"
                   control={control}
@@ -782,7 +782,7 @@ const DeliveryPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="shippingLabelData.destination"
                   control={control}
@@ -799,13 +799,13 @@ const DeliveryPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Typography variant="subtitle1" fontWeight="bold" gutterBottom>
                   Customer Information (Optional)
                 </Typography>
               </Grid>
 
-              <Grid xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="customerInfo.name"
                   control={control}
@@ -820,7 +820,7 @@ const DeliveryPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="customerInfo.email"
                   control={control}
@@ -838,7 +838,7 @@ const DeliveryPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid xs={12} md={6}>
+              <Grid size={{ xs: 12, md: 6 }}>
                 <Controller
                   name="customerInfo.phone"
                   control={control}
@@ -853,7 +853,7 @@ const DeliveryPage: React.FC = () => {
                 />
               </Grid>
 
-              <Grid xs={12}>
+              <Grid size={{ xs: 12 }}>
                 <Controller
                   name="customerInfo.address"
                   control={control}
@@ -903,7 +903,7 @@ const DeliveryPage: React.FC = () => {
                   Delivery Summary
                 </Typography>
                 <Grid container spacing={2}>
-                  <Grid xs={6}>
+                  <Grid size={{ xs: 6 }}>
                     <Typography variant="body2" color="text.secondary">Tracking:</Typography>
                     <Typography variant="body1">{watch('shippingLabelData.trackingNumber') || 'Not provided'}</Typography>
                   </Grid>
@@ -1030,7 +1030,7 @@ const DeliveryPage: React.FC = () => {
 
       {/* Main Content */}
       <Grid container spacing={3}>
-        <Grid xs={12} md={8}>
+        <Grid size={{ xs: 12, md: 8 }}>
           <Card>
             <CardContent>
               <Stepper activeStep={activeStep} orientation="vertical">
@@ -1051,7 +1051,7 @@ const DeliveryPage: React.FC = () => {
         </Grid>
 
         {/* Sidebar */}
-        <Grid xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           {/* Delivery Guidelines */}
           <Card sx={{ mb: 3 }}>
             <CardContent>

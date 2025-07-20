@@ -6,7 +6,7 @@ import {
   Typography,
   Card,
   CardContent,
-  Grid2 as Grid, // <-- CHANGE HERE
+  Grid, // <-- CHANGE HERE
   Alert,
   CircularProgress,
   Table,
@@ -295,7 +295,7 @@ const InventoryPage: React.FC = () => {
 
       {/* Stats Cards */}
       <Grid container spacing={3} sx={{ mb: 4 }}>
-        <Grid xs={12} sm={6} md={2.4}>
+        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -313,7 +313,7 @@ const InventoryPage: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid xs={12} sm={6} md={2.4}>
+        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -331,7 +331,7 @@ const InventoryPage: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid xs={12} sm={6} md={2.4}>
+        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -349,7 +349,7 @@ const InventoryPage: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid xs={12} sm={6} md={2.4}>
+        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -367,7 +367,7 @@ const InventoryPage: React.FC = () => {
           </Card>
         </Grid>
 
-        <Grid xs={12} sm={6} md={2.4}>
+        <Grid size={{ xs: 12, sm: 6, md: 2.4 }}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -398,7 +398,7 @@ const InventoryPage: React.FC = () => {
       <Card sx={{ mb: 3 }}>
         <CardContent>
           <Grid container spacing={2} alignItems="center">
-            <Grid xs={12} md={4}>
+            <Grid size={{ xs: 12, md: 4 }}>
               <TextField
                 fullWidth
                 placeholder="Search by SKU or product name..."
@@ -413,7 +413,7 @@ const InventoryPage: React.FC = () => {
                 }}
               />
             </Grid>
-            <Grid xs={12} md={2}>
+            <Grid size={{ xs: 12, md: 2 }}>
               <FormControl fullWidth>
                 <InputLabel>Source</InputLabel>
                 <Select
@@ -427,7 +427,7 @@ const InventoryPage: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <FormControl fullWidth>
                 <InputLabel>Serial Numbers</InputLabel>
                 <Select
@@ -442,7 +442,7 @@ const InventoryPage: React.FC = () => {
                 </Select>
               </FormControl>
             </Grid>
-            <Grid xs={12} md={3}>
+            <Grid size={{ xs: 12, md: 3 }}>
               <Typography variant="body2" color="text.secondary">
                 Showing {filteredInventory.length} of {inventorySummary.length} products
               </Typography>
@@ -631,31 +631,31 @@ const InventoryPage: React.FC = () => {
           {selectedBatch && (
             <Box>
               <Grid container spacing={2} sx={{ mb: 3 }}>
-                <Grid xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="body2" color="text.secondary">SKU:</Typography>
                   <Typography variant="body1" fontFamily="monospace">{selectedBatch.sku}</Typography>
                 </Grid>
-                <Grid xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="body2" color="text.secondary">Total Items:</Typography>
                   <Typography variant="body1" fontWeight="bold">{selectedBatch.totalQuantity}</Typography>
                 </Grid>
-                <Grid xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="body2" color="text.secondary">Available:</Typography>
                   <Typography variant="body1" color="success.main" fontWeight="bold">
                     {selectedBatch.availableQuantity}
                   </Typography>
                 </Grid>
-                <Grid xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="body2" color="text.secondary">Delivered:</Typography>
                   <Typography variant="body1">{selectedBatch.deliveredQuantity}</Typography>
                 </Grid>
-                <Grid xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="body2" color="text.secondary">Serial Numbers:</Typography>
                   <Typography variant="body1">
                     {selectedBatch.serialNumbersAssigned} / {selectedBatch.totalQuantity} assigned
                   </Typography>
                 </Grid>
-                <Grid xs={6}>
+                <Grid size={{ xs: 6 }}>
                   <Typography variant="body2" color="text.secondary">Source:</Typography>
                   <Chip
                     label={selectedBatch.source === InventorySource.NEW_ARRIVAL ? 'New Arrival' : 'From Return'}
