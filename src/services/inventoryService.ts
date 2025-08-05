@@ -687,6 +687,22 @@ async getDeliveryHistoryForItem(itemId: string): Promise<any[]> {
   }));
   }
 
+async searchSerialNumbers(searchTerm: string): Promise<SerialNumberItem[]> {
+  const allItems = await getDocs(this.serialNumberItemsCollection);
+  const term = searchTerm.toLowerCase();
+  
+  return allItems.docs
+    .map(doc => ({
+      id: doc.id,
+      ...doc.data(),
+      createdAt: doc.data().createdAt?.toDate?.()?.toISOString() || new Date().toISOString(),
+      assignedDate: doc.data().assignedDate?.toDate?.()?.toISOString(),
+    }))
+    .filter((item: any) => 
+      item.serialNumber && item.serialNumber.toLowerCase().includes(term)
+    ) as SerialNumberItem[];
+}
+  
 }
 
 export const inventoryService = new InventoryService();

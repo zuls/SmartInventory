@@ -206,7 +206,7 @@ const SimpleImageUpload: React.FC<SimpleImageUploadProps> = ({
           </Typography>
           <Grid container spacing={2}>
             {images.map((file, index) => (
-              <Grid item xs={12} sm={6} md={4} lg={3} key={index}>
+              <Grid size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={index}>
                 <Card>
                   <CardMedia
                     component="img"

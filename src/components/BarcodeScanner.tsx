@@ -176,7 +176,7 @@ const BarcodeScanner: React.FC<BarcodeScannerProps> = ({
       if (track && 'torch' in track.getCapabilities()) {
         try {
           await track.applyConstraints({
-            advanced: [{ torch: !flashEnabled }],
+            advanced: [{ torch: !flashEnabled } as any],
           });
           setFlashEnabled(!flashEnabled);
         } catch (err) {
